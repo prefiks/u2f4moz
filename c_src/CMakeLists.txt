@@ -6,6 +6,7 @@ INCLUDE (CheckFunctionExists)
 
 IF(APPLE)
   SET(hidapi_SRC hidapi/hid-mac.c)
+  LIST(APPEND extra_LIBS "-framework IOKit" "-framework CoreFoundation")
   SET(TARGET_LOCATION darwin_${CMAKE_SYSTEM_PROCESSOR}-gcc3)
 ELSEIF(WIN32)
   SET(hidapi_SRC hidapi/hid-win.c)

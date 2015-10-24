@@ -19,7 +19,7 @@
 #define INTERNAL_H
 
 #include <u2f-host.h>
-#include "hidapi/hidapi.h"
+#include "hidapi.h"
 #include <stdio.h>
 
 #include "inc/u2f.h"
