@@ -1,0 +1,16 @@
+{
+  "id": "u2f4moz@prefiks.org",
+  "title": "U2F Support Addon",
+  "name": "u2f",
+  "version": "0.0.1",
+  "description": "Extension adding support for U2F specification",
+  "main": "index.js",
+  "author": "Paweł Chmielowski",
+  "engines": {
+    "firefox": ">=38.0a1"
+  },
+  "license": "LGPL",
+  "keywords": [
+    "jetpack"
+  ]
+}
