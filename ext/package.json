@@ -11,6 +11,11 @@
   },
   "license": "LGPL",
   "keywords": [
-    "jetpack"
+    "jetpack",
+    "u2f",
+    "authentication",
+    "two-factor",
+    "yubikey",
+    "fido"
   ]
 }
