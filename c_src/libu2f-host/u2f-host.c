@@ -66,7 +66,7 @@ read_action(int timeout) {
 #else
   struct pollfd pfd[] = {{0, POLLIN, 0}};
   poll(pfd, 1, timeout);
-  if ((pfd[0].revents & POLLIN|POLLERR|POLLHUP) == 0)
+  if ((pfd[0].revents & (POLLIN|POLLERR|POLLHUP)) == 0)
     return NULL;
 #endif
   char op;
@@ -105,7 +105,7 @@ read_action(int timeout) {
 void
 report_error(u2fh_rc rc, char *label)
 {
-  const char str[] = "e%04x{\"errorCode\": %d, \"errorMessage\":\"%s:%s\"}";
+  const char str[] = "e%04lx{\"errorCode\": %d, \"errorMessage\":\"%s:%s\"}";
   const char *err = u2fh_strerror(rc);
 
   printf(str, sizeof(str) + strlen(label) + strlen(err)-11,
@@ -156,7 +156,7 @@ main (int argc, char *argv[])
       dev_insert_send = 1;
     }
 
-    if (action && (rc == U2FH_OK || action->op == 'e'))
+    if (action && (rc == U2FH_OK || action->op == 'e')) {
       if (action->op == 'e')
         goto done;
       else if (action->op == 'r') {
@@ -166,7 +166,7 @@ main (int argc, char *argv[])
         if (rc != U2FH_OK)
           report_error(rc, "register");
         else {
-          printf("r%04x%s", strlen(response), response);
+          printf("r%04lx%s", strlen(response), response);
           fflush(stdout);
         }
 
@@ -180,7 +180,7 @@ main (int argc, char *argv[])
         if (rc != U2FH_OK)
           report_error(rc, "authenticate");
         else {
-          printf("r%04x%s", strlen(response), response);
+          printf("r%04lx%s", strlen(response), response);
           fflush(stdout);
         }
 
@@ -188,6 +188,7 @@ main (int argc, char *argv[])
         free(action);
         action = NULL;
       }
+    }
   }
 
 done:
