@@ -309,7 +309,13 @@ u2fh_devs_discover (u2fh_devs * devs, unsigned *max_index)
 	  continue;
 	}
 
+      if (debug)
+        fprintf (stderr, "Checking device %ls.\n",
+                 cur_dev->product_string);
       get_usages (cur_dev, &usage_page, &usage);
+      if (debug)
+        fprintf (stderr, "Usage: %x UsagePage: %x.\n",
+                 usage, usage_page);
       if (usage_page == FIDO_USAGE_PAGE && usage == FIDO_USAGE_U2FHID)
 	{
 	  devs->devs =
