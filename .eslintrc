@@ -1,12 +1,12 @@
 {
   "env": {
-    "browser": true,
     "es6": true
   },
   "globals": {
     "require": true
   },
   "rules" : {
+    "curly": 0,
     "eqeqeq": 0,
     "global-strict": 0,
     // The add-on SDK console logging is controlled by preferences.

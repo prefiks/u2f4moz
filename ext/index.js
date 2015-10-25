@@ -1,4 +1,4 @@
-/*global self:true*/
+/*global console, clearTimeout: true, self:true, setTimeout:true */
 "use strict";
 
 var self = require("sdk/self");
@@ -33,14 +33,14 @@ function execBin(event, domain, challenge, callbackid, worker, timeout) {
     }
     var r = response.value.match(/^(.)(....)/);
     var len = r && parseInt(r[2], 16);
-    if (r && response.value.length >= len+5) {
+    if (r && response.value.length >= len + 5) {
       worker.port.emit(event, callbackid, JSON.parse(response.value.substr(5, len)));
-      response.value = response.value.substr(5+len);
+      response.value = response.value.substr(5 + len);
       response.responded = true;
     }
   });
   cmd.on("exit", function(code, signal) {
-    console.info("exit",code,signal);
+    console.info("exit", code, signal);
     clearTimeout(timer);
     if (cmd.killed)
       return;
@@ -48,10 +48,10 @@ function execBin(event, domain, challenge, callbackid, worker, timeout) {
     if (code == null || code < 0)
       worker.port.emit(event, callbackid, {errorCode: 1, errorMessage: "Couldn't spawn binary"});
     else if (!response.responded)
-      worker.port.emit(event, callbackid, {errorCode: 1, errorMessage: "No response from binary: "+response.value});
+      worker.port.emit(event, callbackid, {errorCode: 1, errorMessage: "No response from binary: " + response.value});
   });
   var stdin = (event == "signResponse" ? "s" : "r") +
-    [domain, challenge].map(v => (0x10000+v.length).toString(16).substr(1)).join("") +
+    [domain, challenge].map(v => (0x10000 + v.length).toString(16).substr(1)).join("") +
     domain + challenge;
 
   emit(cmd.stdin, "data", stdin);
