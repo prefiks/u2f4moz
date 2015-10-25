@@ -20,6 +20,11 @@ function sendToChrome(type, requests, callback, timeout) {
       return;
     }
     self.port.removeListener(type + "Response", onResponse);
+
+    if (response.errorMessage)
+      console.info("U2F error response:",response.errorMessage);
+    delete response.errorMessage;
+
     var value = cloneInto({id: id, response: response}, document.defaultView);
 
     try {
