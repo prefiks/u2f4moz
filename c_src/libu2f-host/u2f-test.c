@@ -74,7 +74,8 @@ main (int argc, char *argv[])
       goto done;
     }
 
-  for (int i = 0; i <= num_devices; i++) {
+  int i;
+  for (i = 0; i <= num_devices; i++) {
     fprintf (stderr, "pinging device %d = %d\n", i,
              ping_device(devs, i));
   }
