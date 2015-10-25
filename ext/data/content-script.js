@@ -3,17 +3,17 @@
 
 const DEFAULT_TIMEOUT_SECONDS = 30;
 
-console.info("insidePage");
-
 var nextCallbackID = 0;
 
 function sendToChrome(type, requests, callback, timeout) {
   var origin = document.location.origin;
   var callbackID = nextCallbackID++;
+
+  timeout = 1000 * (timeout || DEFAULT_TIMEOUT_SECONDS);
   var timer = setTimeout(function() {
     callback({errorCode: 5});
     timer = null;
-  }, 1000 * (timeout || DEFAULT_TIMEOUT_SECONDS));
+  }, timeout);
 
   self.port.on(type + "Response", function onResponse(id, response) {
     if (id != callbackID || !timer) {
@@ -36,7 +36,7 @@ function sendToChrome(type, requests, callback, timeout) {
     }
   });
 
-  self.port.emit(type, requests, callbackID, origin);
+  self.port.emit(type, requests, callbackID, origin, timeout);
 }
 
 function register(requests, signRequests, callback, timeout) {

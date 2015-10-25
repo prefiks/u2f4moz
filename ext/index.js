@@ -7,17 +7,22 @@ var childProcess = require("sdk/system/child_process");
 var { emit } = require("sdk/event/core");
 var system = require("sdk/system");
 var url = require("sdk/url");
+var { setTimeout, clearTimeout } = require("sdk/timers");
 
-function execBin(event, domain, challenge, callbackid, worker) {
+function execBin(event, domain, challenge, callbackid, worker, timeout) {
   console.info("EB1", event, domain, challenge);
   var exe = system.platform + "_" + system.architecture + "-" + system.compiler + "/u2f" +
     (system.platform == "winnt" ? ".exe" : "");
   var path = url.toFilename(self.data.url("../bin/" + exe));
-
   console.info("EB2", path);
   var cmd = childProcess.spawn(path, [], {});
   console.info("EB3", cmd);
   var response = {value: "", responded: false};
+
+  var timer = setTimeout(function () {
+    cmd.kill();
+  }, timeout);
+
   cmd.stdout.on("data", function(data) {
     console.info("EBD", data);
     response.value += data;
@@ -35,6 +40,11 @@ function execBin(event, domain, challenge, callbackid, worker) {
     }
   });
   cmd.on("exit", function(code, signal) {
+    console.info("exit",code,signal);
+    clearTimeout(timer);
+    if (cmd.killed)
+      return;
+
     if (code == null || code < 0)
       worker.port.emit(event, callbackid, {errorCode: 1, errorMessage: "Couldn't spawn binary"});
     else if (!response.responded)
@@ -55,15 +65,15 @@ pageMod.PageMod({ // eslint-disable-line new-cap
   contentScriptFile: "./content-script.js",
   onAttach: function(worker) {
 
-    worker.port.on("register", function(requests, callbackid, domain) {
+    worker.port.on("register", function(requests, callbackid, domain, timeout) {
       var req = Array.isArray(requests) ? requests[0] : requests;
       var reqS = JSON.stringify(req);
-      execBin("registerResponse", domain, reqS, callbackid, worker);
+      execBin("registerResponse", domain, reqS, callbackid, worker, timeout);
     });
-    worker.port.on("sign", function(signRequests, callbackid, domain) {
+    worker.port.on("sign", function(signRequests, callbackid, domain, timeout) {
       var req = Array.isArray(signRequests) ? signRequests[0] : signRequests;
       var reqS = JSON.stringify(req);
-      execBin("signResponse", domain, reqS, callbackid, worker);
+      execBin("signResponse", domain, reqS, callbackid, worker, timeout);
     });
   }
 });
