@@ -36,7 +36,7 @@ function execBin(args, stdin, event, callbackid, worker) {
 pageMod.PageMod({ // eslint-disable-line new-cap
   include: "*",
   contentScriptWhen: "start",
-  attachTo: ["existing", "top", "frame"],
+  attachTo: ["top", "frame"],
   contentScriptFile: "./content-script.js",
   onAttach: function(worker) {
 
