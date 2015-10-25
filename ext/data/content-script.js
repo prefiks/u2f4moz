@@ -12,6 +12,7 @@ function sendToChrome(type, requests, callback, timeout) {
   var callbackID = nextCallbackID++;
   var timer = setTimeout(function() {
     callback({errorCode: 5});
+    timer = null;
   }, 1000 * (timeout || DEFAULT_TIMEOUT_SECONDS));
 
   self.port.on(type + "Response", function onResponse(id, response) {
