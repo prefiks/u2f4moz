@@ -1,3 +1,4 @@
+/* eslint-env browser */
 /* globals cloneInto, createObjectIn, exportFunction, unsafeWindow */
 "use strict";
 
@@ -22,7 +23,7 @@ function sendToChrome(type, requests, callback, timeout) {
     self.port.removeListener(type + "Response", onResponse);
 
     if (response.errorMessage)
-      console.info("U2F error response:",response.errorMessage);
+      console.info("U2F error response:", response.errorMessage);
     delete response.errorMessage;
 
     var value = cloneInto({id: id, response: response}, document.defaultView);
