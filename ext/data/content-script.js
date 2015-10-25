@@ -1,46 +1,36 @@
 /* globals cloneInto, createObjectIn, exportFunction, unsafeWindow */
 "use strict";
 
+const DEFAULT_TIMEOUT_SECONDS = 30;
+
 console.info("insidePage");
 
-self.port.on("registerResponse", function(id, response) {
-  var value = cloneInto({id: id, response: response}, document.defaultView);
-  var event = new CustomEvent("u2f-register-response", { bubbles: true, detail: value});
-  document.documentElement.dispatchEvent(event);
-});
+var nextCallbackID = 0;
 
-self.port.on("signResponse", function(id, response) {
-  var value = cloneInto({id: id, response: response}, document.defaultView);
-  var event = new CustomEvent("u2f-sign-response", { bubbles: true, detail: value});
-  document.documentElement.dispatchEvent(event);
-});
-
-var callbackId = 0;
-var callbacks = {};
 function sendToChrome(type, requests, callback, timeout) {
   var origin = document.location.origin;
-  var id = callbackId;
-  callbacks[callbackId++] = callback;
-  setTimeout(function() {
-    if (id in callbacks) {
-      callback({errorCode: 5});
+  var callbackID = nextCallbackID++;
+  var timer = setTimeout(function() {
+    callback({errorCode: 5});
+  }, 1000 * (timeout || DEFAULT_TIMEOUT_SECONDS));
+
+  self.port.on(type + "Response", function onResponse(id, response) {
+    if (id != callbackID || !timer) {
+      return;
     }
-    delete callbacks[id];
-  }, 1000 * (timeout || 30));
-  var handler = function(event) {
-    try{
-      if (id in callbacks) {
-        callbacks[id].call(null, event.detail.response);
-      }
-      delete callbacks[id];
+    self.port.removeListener(type + "Response", onResponse);
+    var value = cloneInto({id: id, response: response}, document.defaultView);
+
+    try {
+      callback(value.response);
+      clearTimeout(timer);
+      timer = null;
     } catch (ex) {
       console.info(ex + "");
     }
+  });
 
-    window.removeEventListener("u2f-" + type + "-response", handler, false);
-  };
-  window.addEventListener("u2f-" + type + "-response", handler, false);
-  self.port.emit(type, requests, id, origin);
+  self.port.emit(type, requests, callbackID, origin);
 }
 
 function register(requests, signRequests, callback, timeout) {
