@@ -6,7 +6,7 @@
           <em:bootstrap>true</em:bootstrap>
           <em:unpack>true</em:unpack>
           <em:multiprocessCompatible>true</em:multiprocessCompatible>
-          <em:version>0.0.2</em:version>
+          <em:version>0.0.3</em:version>
           <em:name>U2F Support Add-on</em:name>
           <em:description>Extension adding support for U2F</em:description>
           <em:creator>Paweł Chmielowski</em:creator>
