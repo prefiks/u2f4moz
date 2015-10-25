@@ -6,6 +6,10 @@
   "description": "Extension adding support for U2F specification",
   "main": "index.js",
   "author": "Paweł Chmielowski",
+  "contributors": [
+    "Baptiste Mille-Mathias",
+    "Matt N"
+  ],
   "engines": {
     "firefox": ">=38.0a1"
   },

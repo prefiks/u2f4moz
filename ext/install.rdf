@@ -10,6 +10,8 @@
           <em:name>U2F Support Add-on</em:name>
           <em:description>Extension adding support for U2F</em:description>
           <em:creator>Paweł Chmielowski</em:creator>
+          <em:contributor>Baptiste Mille-Mathias</em:contributor>
+          <em:contributor>Matt N</em:contributor>
           <em:targetPlatform>WINNT_x86-msvc</em:targetPlatform>
           <em:targetPlatform>Linux_x86-gcc3</em:targetPlatform>
           <em:targetPlatform>Linux_x86_64-gcc3</em:targetPlatform>
