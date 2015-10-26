@@ -24,15 +24,16 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <signal.h>
 #include <poll.h>
 #endif
 
-#define REGISTER 0
-#define AUTHENTICATE 1
+#define TIMEOUT 60
 
 typedef struct{
   int op;
@@ -105,15 +106,27 @@ read_action(int timeout) {
 void
 report_error(u2fh_rc rc, char *label)
 {
-  const char str[] = "e%04lx{\"errorCode\": %d, \"errorMessage\":\"%s:%s\"}";
-  const char *err = u2fh_strerror(rc);
+  char buf[1024];
+  int code = rc == U2FH_AUTHENTICATOR_ERROR ? 4 :
+    rc == U2FH_MEMORY_ERROR || rc == U2FH_TRANSPORT_ERROR ? 1 :
+    rc == U2FH_TIMEOUT_ERROR ? 5 : 2;
 
-  printf(str, sizeof(str) + strlen(label) + strlen(err)-11,
-         rc == U2FH_AUTHENTICATOR_ERROR ? 4 :
-         rc == U2FH_MEMORY_ERROR || rc == U2FH_TRANSPORT_ERROR ? 1 :
-         rc == U2FH_TIMEOUT_ERROR ? 5 : 2,
-         label, err);
+  if (label)
+    sprintf(buf, "{\"errorCode\": %d, \"errorMessage\":\"%s:%s\"}",
+            code, label, u2fh_strerror(rc));
+  else
+    sprintf(buf, "{\"errorCode\": %d}", code);
+
+  printf("e%04lx%s", strlen(buf), buf);
+
+  fflush(stdout);
 }
+
+#ifdef _WIN32
+static VOID CALLBACK WaitOrTimerCallback(PVOID param, BOOLEAN timerFired) {
+  exit(14);
+}
+#endif
 
 int
 main (int argc, char *argv[])
@@ -125,6 +138,15 @@ main (int argc, char *argv[])
   u2fh_rc rc;
   OP *action = NULL;
   int dev_insert_send = 0;
+
+#ifdef _WIN32
+  HANDLE hTimer;
+  CreateTimerQueueTimer(&hTimer, NULL, &WaitOrTimerCallback,
+                        NULL, TIMEOUT*1000, 0, 0);
+#else
+  signal(SIGALRM, exit);
+  alarm(TIMEOUT);
+#endif
 
   rc = u2fh_global_init (0);
   if (rc != U2FH_OK) {
@@ -142,7 +164,6 @@ main (int argc, char *argv[])
     rc = u2fh_devs_discover (devs, NULL);
     if (rc != U2FH_OK && rc != U2FH_NO_U2F_DEVICE) {
       report_error(rc, "devs_discover");
-      exit_code = 0;
       goto done;
     }
     if (!action)
@@ -187,6 +208,9 @@ main (int argc, char *argv[])
         free(response);
         free(action);
         action = NULL;
+      } else {
+        report_error(U2FH_TRANSPORT_ERROR, NULL);
+        goto done;
       }
     }
   }
