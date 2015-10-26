@@ -97,18 +97,12 @@ ADD_LIBRARY(u2fhost OBJECT
   libu2f-host/sha256.c)
 
 ADD_EXECUTABLE(u2f
-  libu2f-host/u2f-host.c
+  main.c
   $<TARGET_OBJECTS:u2fhost>
   $<TARGET_OBJECTS:hidapi>
   $<TARGET_OBJECTS:jsonc>)
 
-ADD_EXECUTABLE(u2f-test
-  libu2f-host/u2f-test.c
-  $<TARGET_OBJECTS:u2fhost>
-  $<TARGET_OBJECTS:hidapi>
-  $<TARGET_OBJECTS:jsonc>)
 
 TARGET_LINK_LIBRARIES(u2f ${extra_LIBS})
-TARGET_LINK_LIBRARIES(u2f-test ${extra_LIBS})
 
 INSTALL(TARGETS u2f DESTINATION ${PROJECT_SOURCE_DIR}/../ext/bin/${TARGET_LOCATION})
