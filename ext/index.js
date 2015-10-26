@@ -1,12 +1,14 @@
 /*global console, clearTimeout: true, self:true, setTimeout:true */
 "use strict";
 
-var self = require("sdk/self");
-var pageMod = require("sdk/page-mod");
+var _ = require("sdk/l10n").get;
 var childProcess = require("sdk/system/child_process");
-var { emit } = require("sdk/event/core");
+var notifications = require("sdk/notifications");
+var pageMod = require("sdk/page-mod");
+var self = require("sdk/self");
 var system = require("sdk/system");
 var url = require("sdk/url");
+var { emit } = require("sdk/event/core");
 var { setTimeout, clearTimeout } = require("sdk/timers");
 
 function execBin(event, domain, challenge, callbackid, worker, timeout) {
@@ -28,7 +30,10 @@ function execBin(event, domain, challenge, callbackid, worker, timeout) {
     response.value += data;
     if (response.value[0] == "i") {
       console.info("insert device");
-      worker.port.emit("insert");
+      notifications.notify({
+        title: _("Insert your U2F device"),
+        text: domain,
+      });
       response.value = response.value.substr(1);
     }
     var r = response.value.match(/^(.)(....)/);
