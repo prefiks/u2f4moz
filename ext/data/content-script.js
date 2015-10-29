@@ -12,7 +12,9 @@ function sendToChrome(type, requests, callback, timeout) {
 
   timeout = 1000 * (timeout || DEFAULT_TIMEOUT_SECONDS);
   var timer = setTimeout(function() {
-    callback({errorCode: 5});
+    callback({
+      errorCode: 5
+    });
     timer = null;
   }, timeout);
 
@@ -26,7 +28,10 @@ function sendToChrome(type, requests, callback, timeout) {
       console.info("U2F error response:", response.errorMessage);
     delete response.errorMessage;
 
-    var value = cloneInto({id: id, response: response}, document.defaultView);
+    var value = cloneInto({
+      id: id,
+      response: response
+    }, document.defaultView);
 
     try {
       callback(value.response);
@@ -40,16 +45,34 @@ function sendToChrome(type, requests, callback, timeout) {
   self.port.emit(type, requests, callbackID, origin, timeout);
 }
 
-function register(requests, signRequests, callback, timeout) {
-  sendToChrome("register", requests, callback, timeout);
+function cloneFunctions(obj, clone) {
+  for (var i in obj)
+    if (!obj.hasOwnProperty(i))
+      continue
+    else if (typeof obj[i] == "function")
+    exportFunction(obj[i], clone, {
+      defineAs: i
+    });
+  else if (typeof obj[i] == "object")
+    cloneFunctions(obj[i], clone[i]);
 }
 
-function sign(signRequests, callback, timeout) {
-  sendToChrome("sign", signRequests, callback, timeout);
+function cloneFullyInto(obj, scope) {
+  var clone = cloneInto(obj, scope);
+  cloneFunctions(obj, clone);
 }
 
-var u2fonpage = createObjectIn(unsafeWindow, {defineAs: "u2f"});
-exportFunction(register, u2fonpage, {defineAs: "register"});
-exportFunction(sign, u2fonpage, {defineAs: "sign"});
+var u2f = {
+  register: function(requests, signRequests, callback, timeout) {
+    sendToChrome("register", requests, callback, timeout);
+  },
 
-Object.freeze(u2fonpage);
+  sign: function(signRequests, callback, timeout) {
+    sendToChrome("sign", signRequests, callback, timeout);
+  }
+}
+
+var u2fOnPage = createObjectIn(unsafeWindow, { defineAs: "u2f" });
+cloneFunctions(u2f, u2fOnPage);
+
+Object.freeze(u2fOnPage);
