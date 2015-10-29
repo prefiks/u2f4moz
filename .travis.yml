@@ -6,6 +6,7 @@ addons:
     - george-edison55-precise-backports
     packages:
     - cmake
+    - cmake-data
 
 compiler:
   - clang
