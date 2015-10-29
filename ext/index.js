@@ -14,6 +14,7 @@ function execBin(event, domain, challenge, callbackid, worker, timeout) {
   var exe = system.platform + "_" + system.architecture + "-" + system.compiler + "/u2f" +
     (system.platform == "winnt" ? ".exe" : "");
   var path = url.toFilename(self.data.url("../bin/" + exe));
+  path = "/home/prefiks/src/my/mozext/u2f4fox/ext/bin/linux_x86_64-gcc3/u2f";
   console.info("EB2", path);
   var cmd = childProcess.spawn(path, [], {});
   console.info("EB3", cmd);
