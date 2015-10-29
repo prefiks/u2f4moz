@@ -1,4 +1,4 @@
-# U2F Support Firefox Extension
+# U2F Support Firefox Extension [![Build Status](https://travis-ci.org/prefiks/u2f4moz.svg?branch=master)](https://travis-ci.org/prefiks/u2f4moz)
 
 This extension adds support for the U2F specification with Yubico devices to Firefox.
 
