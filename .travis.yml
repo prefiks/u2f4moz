@@ -1,5 +1,12 @@
 language: c++
 
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - cmake
+
 compiler:
   - clang
   - gcc
