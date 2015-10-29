@@ -1,0 +1,13 @@
+language: c++
+
+compiler:
+  - clang
+  - gcc
+
+script:
+  - mkdir build
+  - cd build; cmake ../c_src
+  - cd build; make
+
+notifications:
+  email: false
