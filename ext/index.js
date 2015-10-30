@@ -1,4 +1,4 @@
-/*global console, clearTimeout: true, self:true, setTimeout:true */
+/* global console, clearTimeout:true, self:true, setTimeout:true */
 "use strict";
 
 var self = require("sdk/self");

@@ -48,7 +48,7 @@ function sendToChrome(type, requests, callback, timeout) {
 function cloneFunctions(obj, clone) {
   for (var i in obj)
     if (!obj.hasOwnProperty(i))
-      continue
+      continue;
     else if (typeof obj[i] == "function")
     exportFunction(obj[i], clone, {
       defineAs: i
@@ -56,11 +56,12 @@ function cloneFunctions(obj, clone) {
   else if (typeof obj[i] == "object")
     cloneFunctions(obj[i], clone[i]);
 }
-
+/* eslint-disable no-unused-vars */
 function cloneFullyInto(obj, scope) {
   var clone = cloneInto(obj, scope);
   cloneFunctions(obj, clone);
 }
+/* eslint-enable no-unused-vars */
 
 var u2f = {
   register: function(requests, signRequests, callback, timeout) {
@@ -70,7 +71,7 @@ var u2f = {
   sign: function(signRequests, callback, timeout) {
     sendToChrome("sign", signRequests, callback, timeout);
   }
-}
+};
 
 var u2fOnPage = createObjectIn(unsafeWindow, { defineAs: "u2f" });
 cloneFunctions(u2f, u2fOnPage);

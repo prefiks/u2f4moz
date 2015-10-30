@@ -1,4 +1,5 @@
 {
+  "extends": "eslint:recommended",
   "env": {
     "es6": true
   },
@@ -11,5 +12,6 @@
     "global-strict": 0,
     // The add-on SDK console logging is controlled by preferences.
     "no-console": 0,
+    "semi": 2
   },
 }
