@@ -15,7 +15,7 @@
   along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
-//#include <config.h>
+#include <config.h>
 #include <u2f-host.h>
 
 #define ERR(name, desc) { name, #name, desc }

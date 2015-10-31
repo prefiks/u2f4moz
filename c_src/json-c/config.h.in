@@ -165,3 +165,5 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #cmakedefine size_t
+
+#define HAVE_JSON_OBJECT_OBJECT_GET_EX 1
