@@ -26,7 +26,11 @@ function sendToChrome(type, requests, callback, timeout) {
 
     if (response.errorMessage)
       console.info("U2F error response:", response.errorMessage);
+
     delete response.errorMessage;
+
+    if (!("errorCode" in response))
+      response.errorCode = 0;
 
     var value = cloneInto({
       id: id,
@@ -46,15 +50,16 @@ function sendToChrome(type, requests, callback, timeout) {
 }
 
 function cloneFunctions(obj, clone) {
-  for (var i in obj)
+  for (var i in obj) {
     if (!obj.hasOwnProperty(i))
       continue;
     else if (typeof obj[i] == "function")
-    exportFunction(obj[i], clone, {
-      defineAs: i
-    });
-  else if (typeof obj[i] == "object")
-    cloneFunctions(obj[i], clone[i]);
+      exportFunction(obj[i], clone, {
+        defineAs: i
+      });
+    else if (typeof obj[i] == "object")
+      cloneFunctions(obj[i], clone[i]);
+  }
 }
 /* eslint-disable no-unused-vars */
 function cloneFullyInto(obj, scope) {
@@ -73,7 +78,9 @@ var u2f = {
   }
 };
 
-var u2fOnPage = createObjectIn(unsafeWindow, { defineAs: "u2f" });
+var u2fOnPage = createObjectIn(unsafeWindow, {
+  defineAs: "u2f"
+});
 cloneFunctions(u2f, u2fOnPage);
 
 Object.freeze(u2fOnPage);
