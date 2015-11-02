@@ -123,8 +123,26 @@ report_error(u2fh_rc rc, char *label)
 }
 
 #ifdef _WIN32
-static VOID CALLBACK WaitOrTimerCallback(PVOID param, BOOLEAN timerFired) {
+static HANDEL timer_handle = NULL;
+
+static VOID CALLBACK
+WaitOrTimerCallback(PVOID param, BOOLEAN timerFired) {
   exit(14);
+}
+
+static void
+reset_quit_timer() {
+  if (timer_handle)
+    DeleteTimerQueueTimer(NULL, timer_handle, NULL);
+
+  CreateTimerQueueTimer(&timer_handle, NULL, &WaitOrTimerCallback,
+                        NULL, TIMEOUT*1000, 0, 0);
+}
+#else
+static void
+reset_quit_timer() {
+  signal(SIGALRM, exit);
+  alarm(TIMEOUT);
 }
 #endif
 
@@ -139,14 +157,7 @@ main (int argc, char *argv[])
   OP *action = NULL;
   int dev_insert_send = 0;
 
-#ifdef _WIN32
-  HANDLE hTimer;
-  CreateTimerQueueTimer(&hTimer, NULL, &WaitOrTimerCallback,
-                        NULL, TIMEOUT*1000, 0, 0);
-#else
-  signal(SIGALRM, exit);
-  alarm(TIMEOUT);
-#endif
+  reset_quit_timer();
 
   rc = u2fh_global_init (0);
   if (rc != U2FH_OK) {
@@ -166,9 +177,11 @@ main (int argc, char *argv[])
       report_error(rc, "devs_discover");
       goto done;
     }
-    if (!action)
+    if (!action) {
       action = read_action(1000);
-    else
+      if (action)
+        reset_quit_timer();
+    } else
       sleep(1);
 
     if (rc != U2FH_OK && !dev_insert_send) {
