@@ -29,9 +29,6 @@ function sendToChrome(type, requests, callback, timeout) {
 
     delete response.errorMessage;
 
-    if (!("errorCode" in response))
-      response.errorCode = 0;
-
     var value = cloneInto({
       id: id,
       response: response
