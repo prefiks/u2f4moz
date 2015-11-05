@@ -123,7 +123,7 @@ report_error(u2fh_rc rc, char *label)
 }
 
 #ifdef _WIN32
-static HANDEL timer_handle = NULL;
+static HANDLE timer_handle = NULL;
 
 static VOID CALLBACK
 WaitOrTimerCallback(PVOID param, BOOLEAN timerFired) {
