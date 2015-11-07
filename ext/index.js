@@ -9,6 +9,8 @@ var system = require("sdk/system");
 var url = require("sdk/url");
 var { setTimeout, clearTimeout } = require("sdk/timers");
 
+var activeRequest;
+
 function execBin(event, domain, challenge, callbackid, worker, timeout) {
   console.info("EB1", event, domain, challenge);
   var exe = system.platform + "_" + system.architecture + "-" + system.compiler + "/u2f" +
@@ -42,6 +44,8 @@ function execBin(event, domain, challenge, callbackid, worker, timeout) {
   cmd.on("exit", function(code, signal) {
     console.info("exit", code, signal);
     clearTimeout(timer);
+    activeRequest = null;
+
     if (cmd.killed)
       return;
 
@@ -54,6 +58,8 @@ function execBin(event, domain, challenge, callbackid, worker, timeout) {
     [domain, challenge].map(v => (0x10000 + v.length).toString(16).substr(1)).join("") +
     domain + challenge;
 
+  activeRequest = {worker: worker, cmd: cmd};
+
   emit(cmd.stdin, "data", stdin);
   emit(cmd.stdin, "end");
 }
@@ -64,7 +70,6 @@ pageMod.PageMod({ // eslint-disable-line new-cap
   attachTo: ["top", "frame"],
   contentScriptFile: "./content-script.js",
   onAttach: function(worker) {
-
     worker.port.on("register", function(requests, callbackid, domain, timeout) {
       var req = Array.isArray(requests) ? requests[0] : requests;
       var reqS = JSON.stringify(req);
@@ -74,6 +79,12 @@ pageMod.PageMod({ // eslint-disable-line new-cap
       var req = Array.isArray(signRequests) ? signRequests[0] : signRequests;
       var reqS = JSON.stringify(req);
       execBin("signResponse", domain, reqS, callbackid, worker, timeout);
+    });
+    worker.on("detach", function() {
+      if (activeRequest && activeRequest.worker == worker) {
+        activeRequest.cmd.kill();
+        activeRequest = null;
+      }
     });
   }
 });
