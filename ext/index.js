@@ -13,8 +13,8 @@ var activeRequest;
 
 function execBin(event, domain, challenge, callbackid, worker, timeout) {
   console.info("EB1", event, domain, challenge);
-  var exe = system.platform + "_" + system.architecture + "-" + system.compiler + "/u2f" +
-    (system.platform == "winnt" ? ".exe" : "");
+  var [arch, ext] = system.platform == "winnt" ? ["x86", ".exe"] : [system.architecture, ""];
+  var exe = system.platform + "_" + arch + "-" + system.compiler + "/u2f" + ext;
   var path = url.toFilename(self.data.url("../bin/" + exe));
   console.info("EB2", path);
   var cmd = childProcess.spawn(path, [], {});

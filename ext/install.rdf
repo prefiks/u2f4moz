@@ -13,6 +13,7 @@
           <em:contributor>Baptiste Mille-Mathias</em:contributor>
           <em:contributor>Matt N</em:contributor>
           <em:targetPlatform>WINNT_x86-msvc</em:targetPlatform>
+          <em:targetPlatform>WINNT_x86_64-msvc</em:targetPlatform>
           <em:targetPlatform>Linux_x86-gcc3</em:targetPlatform>
           <em:targetPlatform>Linux_x86_64-gcc3</em:targetPlatform>
           <em:targetPlatform>Darwin_x86_64-gcc3</em:targetPlatform>
