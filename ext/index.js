@@ -11,6 +11,18 @@ var { setTimeout, clearTimeout } = require("sdk/timers");
 
 var activeRequest;
 
+function killExe() {
+  if (!activeRequest)
+    return;
+  clearTimeout(activeRequest.timer);
+  try {
+    activeRequest.cmd.kill();
+  } catch (ex) {
+    console.info("killExe", ex);
+  }
+  activeRequest = null;
+}
+
 function execBin(event, domain, challenge, callbackid, worker, timeout) {
   console.info("EB1", event, domain, challenge);
   var [arch, ext] = system.platform == "winnt" ? ["x86", ".exe"] : [system.architecture, ""];
@@ -22,7 +34,7 @@ function execBin(event, domain, challenge, callbackid, worker, timeout) {
   var response = {value: "", responded: false};
 
   var timer = setTimeout(function () {
-    cmd.kill();
+    killExe();
   }, timeout);
 
   cmd.stdout.on("data", function(data) {
@@ -41,6 +53,10 @@ function execBin(event, domain, challenge, callbackid, worker, timeout) {
       response.responded = true;
     }
   });
+  cmd.on("error", function() {
+    worker.port.emit(event, callbackid, {errorCode: 1, errorMessage: "Couldn't spawn binary"});
+    killExe();
+  });
   cmd.on("exit", function(code, signal) {
     console.info("exit", code, signal);
     clearTimeout(timer);
@@ -58,7 +74,7 @@ function execBin(event, domain, challenge, callbackid, worker, timeout) {
     [domain, challenge].map(v => (0x10000 + v.length).toString(16).substr(1)).join("") +
     domain + challenge;
 
-  activeRequest = {worker: worker, cmd: cmd};
+  activeRequest = {worker: worker, cmd: cmd, timer: timer};
 
   emit(cmd.stdin, "data", stdin);
   emit(cmd.stdin, "end");
@@ -82,8 +98,7 @@ pageMod.PageMod({ // eslint-disable-line new-cap
     });
     worker.on("detach", function() {
       if (activeRequest && activeRequest.worker == worker) {
-        activeRequest.cmd.kill();
-        activeRequest = null;
+        killExe();
       }
     });
   }
