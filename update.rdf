@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RDF:RDF xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:em="http://www.mozilla.org/2004/em-rdf#">
+  <RDF:Description about="urn:mozilla:extension:u2f4moz@prefiks.org">
+    <em:updates>
+      <RDF:Seq>
+        <RDF:li>
+          <RDF:Description>
+            <em:version>0.0.6</em:version>
+            <em:targetApplication>
+              <RDF:Description>
+                <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
+                <em:minVersion>38.0a1</em:minVersion>
+                <em:maxVersion>45.*</em:maxVersion>
+                <em:updateLink>https://github.com/prefiks/u2f4moz/releases/download/v0.0.6/u2f-0.0.6-github.xpi</em:updateLink>
+                <em:updateHash>sha256:929ca9e0da762a2103f537c7d2d446dcf623444600ecf3342470d8568d1cf5ee</em:updateHash>
+              </RDF:Description>
+            </em:targetApplication>
+          </RDF:Description>
+        </RDF:li>
+      </RDF:Seq>
+    </em:updates>
+  </RDF:Description>
+</RDF:RDF>
