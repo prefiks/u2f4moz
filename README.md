@@ -22,5 +22,5 @@ permissions in final file will be correct.
 ## Permissions tweaks for Linux ##
 
 On Linux access to U2F devices may not be permitted to Firefox, installing extra
-[udev rules][https://github.com/Yubico/libu2f-host/blob/master/70-u2f.rules] may help
+[udev rules](https://github.com/Yubico/libu2f-host/blob/master/70-u2f.rules) may help
 in this situation.
