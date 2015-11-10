@@ -156,6 +156,8 @@ main (int argc, char *argv[])
   u2fh_rc rc;
   OP *action = NULL;
   int dev_insert_send = 0;
+  u2fh_rc device_disapeared_rc;
+  char *device_disapeared_msg;
 
   reset_quit_timer();
 
@@ -173,10 +175,20 @@ main (int argc, char *argv[])
 
   while (1) {
     rc = u2fh_devs_discover (devs, NULL);
+    if (device_disapeared_rc != U2FH_OK && rc != U2FH_NO_U2F_DEVICE) {
+      report_error(device_disapeared_rc, device_disapeared_msg);
+
+      free(response);
+      free(action);
+      action = NULL;
+    }
     if (rc != U2FH_OK && rc != U2FH_NO_U2F_DEVICE) {
       report_error(rc, "devs_discover");
       goto done;
     }
+
+    device_disapeared_rc = U2FH_OK;
+
     if (!action) {
       action = read_action(1000);
       if (action)
@@ -197,9 +209,11 @@ main (int argc, char *argv[])
         rc = u2fh_register(devs, action->challenge, action->domain,
                            &response,
                            U2FH_REQUEST_USER_PRESENCE);
-        if (rc != U2FH_OK)
-          report_error(rc, "register");
-        else {
+        if (rc != U2FH_OK) {
+          device_disapeared_rc = rc;
+          device_disapeared_msg = "register";
+          continue;
+        } else {
           printf("r%04lx%s", strlen(response), response);
           fflush(stdout);
         }
@@ -211,9 +225,11 @@ main (int argc, char *argv[])
         rc = u2fh_authenticate(devs, action->challenge, action->domain,
                                &response,
                                U2FH_REQUEST_USER_PRESENCE);
-        if (rc != U2FH_OK)
-          report_error(rc, "authenticate");
-        else {
+        if (rc != U2FH_OK) {
+          device_disapeared_rc = rc;
+          device_disapeared_msg = "authenticate";
+          continue;
+        } else {
           printf("r%04lx%s", strlen(response), response);
           fflush(stdout);
         }
