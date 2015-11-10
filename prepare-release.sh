@@ -8,10 +8,10 @@ MAXVER=`perl -ne 'print $1 if (/maxVersion>\s*(.*?)\s*</)' ext/install.rdf`
 
 cp ext/install.rdf install.rdf
 perl -pi -e 's!(\s*<em:targetApplication)!<em:updateURL>https://prefiks.github.io/u2f4moz/update.rdf</em:updateURL>\n$1!' ext/install.rdf
-#(cd ext; zip -9r ../u2f-$VERSION-github.xpi *)
+(cd ext; zip -9r ../u2f-$VERSION-github.xpi *)
 
 mv install.rdf ext/install.rdf
-#(cd ext; zip -9r ../u2f-$VERSION.xpi *)
+(cd ext; zip -9r ../u2f-$VERSION.xpi *)
 
 git archive --format zip HEAD >u2f-src-$VERSION.zip
 
