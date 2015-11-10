@@ -1,5 +1,7 @@
 #!/bin/bash
 
+git stash
+
 VERSION=`perl -ne 'print $1 if (/"version"\s*:\s*"(.*?)"/)' ext/package.json`
 MINVER=`perl -ne 'print $1 if (/minVersion>\s*(.*?)\s*</)' ext/install.rdf`
 MAXVER=`perl -ne 'print $1 if (/maxVersion>\s*(.*?)\s*</)' ext/install.rdf`
@@ -47,3 +49,5 @@ s/\@MAXVER\@/$MAXVER/g;
 s/\@SHA\@/$SHA/g;
 s!\@XPIURL\@!$XPIURL!g;
 "> update.rdf
+
+git stash pop
