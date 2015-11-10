@@ -14,4 +14,13 @@ Install from https://addons.mozilla.org/firefox/addon/u2f-support-add-on/
 4. `cd ../ext`
 5. `jpm run`
 
-On OS X the u2f binary may lose its executable bit upon packaging as an XPI.
+On OS X and Linux the u2f binary may lose its executable bit upon packaging XPI this way.
+
+It's possible to make XPI file manually by executing `cd ext; zip -9r ../u2f.xpi *`, this way
+permissions in final file will be correct.
+
+## Permissions tweaks for Linux ##
+
+On Linux access to U2F devices may not be permitted to Firefox, installing extra
+[udev rules][https://github.com/Yubico/libu2f-host/blob/master/70-u2f.rules] may help
+in this situation.
