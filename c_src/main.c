@@ -15,16 +15,11 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <config.h>
 #include "u2f-host.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
 #include <unistd.h>
-#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
