@@ -177,7 +177,6 @@ main(int argc, char *argv[]) {
   int exit_code = EXIT_FAILURE;
   char *response = NULL;
   u2fh_devs *devs = NULL;
-  u2fh_cmdflags flags = 0;
   u2fh_rc rc;
   OP *action = NULL;
   int dev_insert_send = 0;
