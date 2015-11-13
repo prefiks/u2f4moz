@@ -23,8 +23,17 @@ function killExe() {
   activeRequest = null;
 }
 
-function execBin(event, domain, challenge, callbackid, worker, timeout) {
-  console.info("EB1", event, domain, challenge);
+function toHex(num) {
+  return (0x10000 + num).toString(16).substr(1);
+}
+
+function execBin(event, domain, challenges, callbackid, worker, timeout) {
+  if (challenges.length == 0) {
+    worker.port.emit(event, callbackid, {errorCode: 2, errorMessage: "Invalid input"});
+    return;
+  }
+
+  console.info("EB1", event, domain, challenges);
   var [arch, ext] = system.platform == "winnt" ? ["x86", ".exe"] : [system.architecture, ""];
   var exe = system.platform + "_" + arch + "-" + system.compiler + "/u2f" + ext;
   var path = url.toFilename(self.data.url("../bin/" + exe));
@@ -70,9 +79,14 @@ function execBin(event, domain, challenge, callbackid, worker, timeout) {
     else if (!response.responded)
       worker.port.emit(event, callbackid, {errorCode: 1, errorMessage: "No response from binary: " + response.value});
   });
-  var stdin = (event == "signResponse" ? "s" : "r") +
-    [domain, challenge].map(v => (0x10000 + v.length).toString(16).substr(1)).join("") +
-    domain + challenge;
+  if (challenges.length > 16)
+    challenges = challenges.slice(0, 16);
+
+  var stdin = (event == "signResponse" ? "s" : "r") + toHex(domain.length) +
+    toHex(challenges.length) + challenges.map(v=>toHex(v.length)).join("") +
+    domain + challenges.join("");
+
+  console.info("stdin", stdin);
 
   activeRequest = {worker: worker, cmd: cmd, timer: timer};
 
@@ -87,13 +101,13 @@ pageMod.PageMod({ // eslint-disable-line new-cap
   contentScriptFile: "./content-script.js",
   onAttach: function(worker) {
     worker.port.on("register", function(requests, callbackid, domain, timeout) {
-      var req = Array.isArray(requests) ? requests[0] : requests;
-      var reqS = JSON.stringify(req);
+      var req = Array.isArray(requests) ? requests : [requests];
+      var reqS = req.map(v => JSON.stringify(v));
       execBin("registerResponse", domain, reqS, callbackid, worker, timeout);
     });
     worker.port.on("sign", function(signRequests, callbackid, domain, timeout) {
-      var req = Array.isArray(signRequests) ? signRequests[0] : signRequests;
-      var reqS = JSON.stringify(req);
+      var req = Array.isArray(signRequests) ? signRequests : [signRequests];
+      var reqS = req.map(v => JSON.stringify(v));
       execBin("signResponse", domain, reqS, callbackid, worker, timeout);
     });
     worker.on("detach", function() {

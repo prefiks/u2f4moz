@@ -38,7 +38,7 @@
 typedef struct{
   int op;
   char *domain;
-  char *challenge;
+  char **challenges;
 } OP;
 
 OP eof_op = {'e'};
@@ -76,28 +76,51 @@ read_action(int timeout) {
     return &eof_op;
 
   if (op == 'r' || op == 's') {
-    char lenghts[9];
-    int chl, dol;
-    if (!read_n_bytes(lenghts, 8))
+    char input_len_buf[13];
+    long challenges_lengths[16];
+    long challenges_num, challenges_buf_len = 0, domain_len;
+
+    if (!read_n_bytes(input_len_buf, 8))
       return &eof_op;
-    lenghts[8] = '\0';
-    chl = strtol(lenghts+4, NULL, 16);
-    lenghts[4] = '\0';
-    dol = strtol(lenghts, NULL, 16);
-    OP *buf = malloc(dol+chl+2+sizeof(OP));
+
+    input_len_buf[8] = '\0';
+    challenges_num = strtol(input_len_buf + 4, NULL, 16);
+    input_len_buf[4] = '\0';
+    domain_len = strtol(input_len_buf, NULL, 16);
+
+    for (int i = 0; i < challenges_num; i++) {
+      if (!read_n_bytes(input_len_buf, 4))
+        return &eof_op;
+      challenges_lengths[i] = strtol(input_len_buf, NULL, 16);
+      challenges_buf_len += challenges_lengths[i];
+    }
+
+    OP *buf = malloc(domain_len + (sizeof(char *) * (challenges_num + 1)) +
+                     challenges_buf_len + challenges_num + 1 + sizeof(OP));
     if (!buf)
       return &eof_op;
 
     buf->op = op;
-    buf->domain = ((char*)buf)+sizeof(OP);
-    buf->domain[dol] = '\0';
-    buf->challenge = ((char*)buf)+sizeof(OP)+dol+1;
-    buf->challenge[chl] = '\0';
+    buf->challenges = (char **) ((char *) buf) + sizeof(OP);
+    buf->domain = ((char *) buf) + sizeof(OP) + (sizeof(char *) * (challenges_num + 1));
+    buf->domain[domain_len] = '\0';
 
-    if(!read_n_bytes(buf->domain, dol))
+    if (!read_n_bytes(buf->domain, domain_len)) {
+      free(buf);
       return &eof_op;
-    if(!read_n_bytes(buf->challenge, chl))
-      return &eof_op;
+    }
+
+    char *challenge = buf->domain + domain_len;
+    for (int i = 0; i < challenges_num; i++) {
+      buf->challenges[i] = challenge;
+      if (!read_n_bytes(buf->challenges[i], challenges_lengths[i])) {
+        free(buf);
+        return &eof_op;
+      }
+      challenge[challenges_lengths[i]] = '\0';
+      challenge += challenges_lengths[i];
+    }
+    buf->challenges[challenges_num] = NULL;
     return buf;
   } else
     return &eof_op;
@@ -156,7 +179,7 @@ main (int argc, char *argv[])
   u2fh_rc rc;
   OP *action = NULL;
   int dev_insert_send = 0;
-  u2fh_rc device_disapeared_rc;
+  u2fh_rc device_disapeared_rc = U2FH_OK;
   char *device_disapeared_msg;
 
   reset_quit_timer();
@@ -206,9 +229,14 @@ main (int argc, char *argv[])
       if (action->op == 'e')
         goto done;
       else if (action->op == 'r') {
-        rc = u2fh_register(devs, action->challenge, action->domain,
-                           &response,
-                           U2FH_REQUEST_USER_PRESENCE);
+        int i = 0;
+        do {
+          rc = u2fh_register(devs, action->challenges[i], action->domain,
+                             &response,
+                             U2FH_REQUEST_USER_PRESENCE);
+          i++;
+        } while (action->challenges[i] && rc == U2FH_AUTHENTICATOR_ERROR);
+
         if (rc != U2FH_OK) {
           device_disapeared_rc = rc;
           device_disapeared_msg = "register";
@@ -222,9 +250,14 @@ main (int argc, char *argv[])
         free(action);
         action = NULL;
       } else if (action->op == 's') {
-        rc = u2fh_authenticate(devs, action->challenge, action->domain,
-                               &response,
-                               U2FH_REQUEST_USER_PRESENCE);
+        int i = 0;
+        do {
+          rc = u2fh_authenticate(devs, action->challenges[i], action->domain,
+                                 &response,
+                                 U2FH_REQUEST_USER_PRESENCE);
+          i++;
+        } while (action->challenges[i] && rc == U2FH_AUTHENTICATOR_ERROR);
+
         if (rc != U2FH_OK) {
           device_disapeared_rc = rc;
           device_disapeared_msg = "authenticate";
