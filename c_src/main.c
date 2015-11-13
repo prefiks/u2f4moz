@@ -81,6 +81,7 @@ read_action(int timeout) {
     char input_len_buf[9];
     long challenges_lengths[16];
     long challenges_num, challenges_buf_len = 0, domain_len;
+    int i;
 
     if (!read_n_bytes(input_len_buf, 8))
       return &eof_op;
@@ -90,7 +91,7 @@ read_action(int timeout) {
     input_len_buf[4] = '\0';
     domain_len = strtol(input_len_buf, NULL, 16);
 
-    for (int i = 0; i < challenges_num; i++) {
+    for (i = 0; i < challenges_num; i++) {
       if (!read_n_bytes(input_len_buf, 4))
         return &eof_op;
       challenges_lengths[i] = strtol(input_len_buf, NULL, 16);
@@ -113,7 +114,7 @@ read_action(int timeout) {
     }
 
     char *challenge = buf->domain + domain_len + 1;
-    for (int i = 0; i < challenges_num; i++) {
+    for (i = 0; i < challenges_num; i++) {
       buf->challenges[i] = challenge;
       if (!read_n_bytes(buf->challenges[i], challenges_lengths[i])) {
         free(buf);
