@@ -27,10 +27,12 @@
 #include <time.h>
 
 #ifdef _WIN32
-  #include <windows.h>
+#include <windows.h>
 #else
-  #include <signal.h>
-  #include <poll.h>
+
+#include <signal.h>
+#include <poll.h>
+
 #endif
 
 #define TIMEOUT 60
@@ -76,7 +78,7 @@ read_action(int timeout) {
     return &eof_op;
 
   if (op == 'r' || op == 's') {
-    char input_len_buf[13];
+    char input_len_buf[9];
     long challenges_lengths[16];
     long challenges_num, challenges_buf_len = 0, domain_len;
 
@@ -101,8 +103,8 @@ read_action(int timeout) {
       return &eof_op;
 
     buf->op = op;
-    buf->challenges = (char **) ((char *) buf) + sizeof(OP);
-    buf->domain = ((char *) buf) + sizeof(OP) + (sizeof(char *) * (challenges_num + 1));
+    buf->challenges = (char **) (buf + 1);
+    buf->domain = (char *) (buf->challenges + challenges_num + 1);
     buf->domain[domain_len] = '\0';
 
     if (!read_n_bytes(buf->domain, domain_len)) {
@@ -110,7 +112,7 @@ read_action(int timeout) {
       return &eof_op;
     }
 
-    char *challenge = buf->domain + domain_len;
+    char *challenge = buf->domain + domain_len + 1;
     for (int i = 0; i < challenges_num; i++) {
       buf->challenges[i] = challenge;
       if (!read_n_bytes(buf->challenges[i], challenges_lengths[i])) {
