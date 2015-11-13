@@ -19,6 +19,11 @@ On OS X and Linux the u2f binary may lose its executable bit upon packaging XPI 
 It's possible to make XPI file manually by executing `cd ext; zip -9r ../u2f.xpi *`, this way
 permissions in final file will be correct.
 
+## Enabling U2f on Yubico Neo and Neo-n ##
+
+Those two devices don't have U2F enabled by default, it requires manual configuration changes
+described described in this [document](http://yubi.co/unlockU2F).
+
 ## Permissions tweaks for Linux ##
 
 On Linux access to U2F devices may not be permitted to Firefox, installing extra
