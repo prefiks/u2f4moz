@@ -15,7 +15,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//#include <config.h>
+#include <config.h>
 #include "u2f-host.h"
 
 #include <stdio.h>
@@ -27,26 +27,26 @@
 #include <time.h>
 
 #ifdef _WIN32
-#include <windows.h>
+  #include <windows.h>
 #else
-#include <signal.h>
-#include <poll.h>
+  #include <signal.h>
+  #include <poll.h>
 #endif
 
 #define TIMEOUT 60
 
-typedef struct{
+typedef struct {
   int op;
   char *domain;
   char **challenges;
 } OP;
 
-OP eof_op = {'e'};
+static OP eof_op = {'e'};
 
-int
-read_n_bytes(char *buf, int len) {
+static int
+read_n_bytes(char *buf, long len) {
   while (len > 0) {
-    int r = read(0, buf, len);
+    long r = read(0, buf, len);
     if (!r)
       return 0;
     buf += r;
@@ -55,7 +55,7 @@ read_n_bytes(char *buf, int len) {
   return 1;
 }
 
-OP *
+static OP *
 read_action(int timeout) {
 #ifdef _WIN32
   HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
@@ -67,7 +67,7 @@ read_action(int timeout) {
 #else
   struct pollfd pfd[] = {{0, POLLIN, 0}};
   poll(pfd, 1, timeout);
-  if ((pfd[0].revents & (POLLIN|POLLERR|POLLHUP)) == 0)
+  if ((pfd[0].revents & (POLLIN | POLLERR | POLLHUP)) == 0)
     return NULL;
 #endif
   char op;
@@ -126,13 +126,12 @@ read_action(int timeout) {
     return &eof_op;
 }
 
-void
-report_error(u2fh_rc rc, char *label)
-{
+static void
+report_error(u2fh_rc rc, char *label) {
   char buf[1024];
   int code = rc == U2FH_AUTHENTICATOR_ERROR ? 4 :
-    rc == U2FH_MEMORY_ERROR || rc == U2FH_TRANSPORT_ERROR ? 1 :
-    rc == U2FH_TIMEOUT_ERROR ? 5 : 2;
+             rc == U2FH_MEMORY_ERROR || rc == U2FH_TRANSPORT_ERROR ? 1 :
+             rc == U2FH_TIMEOUT_ERROR ? 5 : 2;
 
   if (label)
     sprintf(buf, "{\"errorCode\": %d, \"errorMessage\":\"%s:%s\"}",
@@ -162,16 +161,17 @@ reset_quit_timer() {
                         NULL, TIMEOUT*1000, 0, 0);
 }
 #else
+
 static void
 reset_quit_timer() {
   signal(SIGALRM, exit);
   alarm(TIMEOUT);
 }
+
 #endif
 
 int
-main (int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   int exit_code = EXIT_FAILURE;
   char *response = NULL;
   u2fh_devs *devs = NULL;
@@ -184,20 +184,20 @@ main (int argc, char *argv[])
 
   reset_quit_timer();
 
-  rc = u2fh_global_init (0);
+  rc = u2fh_global_init(0);
   if (rc != U2FH_OK) {
     report_error(rc, "global_init");
     exit(1);
   }
 
-  rc = u2fh_devs_init (&devs);
-  if (rc != U2FH_OK){
+  rc = u2fh_devs_init(&devs);
+  if (rc != U2FH_OK) {
     report_error(rc, "devs_init");
     goto done;
   }
 
   while (1) {
-    rc = u2fh_devs_discover (devs, NULL);
+    rc = u2fh_devs_discover(devs, NULL);
     if (device_disapeared_rc != U2FH_OK && rc != U2FH_NO_U2F_DEVICE) {
       report_error(device_disapeared_rc, device_disapeared_msg);
 
@@ -277,9 +277,9 @@ main (int argc, char *argv[])
     }
   }
 
-done:
-  u2fh_devs_done (devs);
-  u2fh_global_done ();
+  done:
+  u2fh_devs_done(devs);
+  u2fh_global_done();
 
-  exit (exit_code);
+  exit(exit_code);
 }
