@@ -182,7 +182,7 @@ main(int argc, char *argv[]) {
   OP *action = NULL;
   int dev_insert_send = 0;
   u2fh_rc device_disapeared_rc = U2FH_OK;
-  char *device_disapeared_msg;
+  char *device_disapeared_msg = NULL;
 
   reset_quit_timer();
 
