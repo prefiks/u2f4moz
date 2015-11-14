@@ -86,6 +86,9 @@ read_action(int timeout) {
     input_len_buf[4] = '\0';
     domain_len = strtol(input_len_buf, NULL, 16);
 
+    if (challenges_num >= sizeof(challenges_lengths)/sizeof(challenges_lengths[0]))
+      return &eof_op;
+
     for (i = 0; i < challenges_num; i++) {
       if (!read_n_bytes(input_len_buf, 4))
         return &eof_op;
