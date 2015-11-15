@@ -1,13 +1,14 @@
 /* global console, clearTimeout:true, self:true, setTimeout:true */
 "use strict";
 
-var self = require("sdk/self");
-var pageMod = require("sdk/page-mod");
-var childProcess = require("sdk/system/child_process");
-var { emit } = require("sdk/event/core");
-var system = require("sdk/system");
-var url = require("sdk/url");
-var { setTimeout, clearTimeout } = require("sdk/timers");
+const self = require("sdk/self");
+const pageMod = require("sdk/page-mod");
+const childProcess = require("sdk/system/child_process");
+const { emit } = require("sdk/event/core");
+const system = require("sdk/system");
+const { URL, toFilename } = require("sdk/url");
+const { setTimeout, clearTimeout } = require("sdk/timers");
+const { allValidAppIds } = require("./appIdValidator");
 
 var activeRequest;
 
@@ -27,22 +28,35 @@ function toHex(num) {
   return (0x10000 + num).toString(16).substr(1);
 }
 
-function execBin(event, domain, challenges, callbackid, worker, timeout) {
-  if (challenges.length == 0) {
-    worker.port.emit(event, callbackid, {errorCode: 2, errorMessage: "Invalid input"});
-    return;
-  }
+function execBin(event, origin, challenges, callbackid, worker, timeout) {
+  let facetId = URL(origin);
 
-  console.info("EB1", event, domain, challenges);
+  allValidAppIds(facetId, challenges).then(ch => {
+    if (ch.length == 0) {
+      worker.port.emit(event, callbackid, {
+        errorCode: 2,
+        errorMessage: "Invalid input"
+      });
+      return;
+    }
+    _execBin(event, origin, ch, callbackid, worker, timeout);
+  });
+}
+
+function _execBin(event, origin, challenges, callbackid, worker, timeout) {
+  console.info("EB1", event, origin, challenges);
   var [arch, ext] = system.platform == "winnt" ? ["x86", ".exe"] : [system.architecture, ""];
   var exe = system.platform + "_" + arch + "-" + system.compiler + "/u2f" + ext;
-  var path = url.toFilename(self.data.url("../bin/" + exe));
+  var path = toFilename(self.data.url("../bin/" + exe));
   console.info("EB2", path);
   var cmd = childProcess.spawn(path, [], {});
   console.info("EB3", cmd);
-  var response = {value: "", responded: false};
+  var response = {
+    value: "",
+    responded: false
+  };
 
-  var timer = setTimeout(function () {
+  var timer = setTimeout(function() {
     killExe();
   }, timeout);
 
@@ -63,7 +77,10 @@ function execBin(event, domain, challenges, callbackid, worker, timeout) {
     }
   });
   cmd.on("error", function() {
-    worker.port.emit(event, callbackid, {errorCode: 1, errorMessage: "Couldn't spawn binary"});
+    worker.port.emit(event, callbackid, {
+      errorCode: 1,
+      errorMessage: "Couldn't spawn binary"
+    });
     killExe();
   });
   cmd.on("exit", function(code, signal) {
@@ -75,20 +92,31 @@ function execBin(event, domain, challenges, callbackid, worker, timeout) {
       return;
 
     if (code == null || code < 0)
-      worker.port.emit(event, callbackid, {errorCode: 1, errorMessage: "Couldn't spawn binary"});
+      worker.port.emit(event, callbackid, {
+        errorCode: 1,
+        errorMessage: "Couldn't spawn binary"
+      });
     else if (!response.responded)
-      worker.port.emit(event, callbackid, {errorCode: 1, errorMessage: "No response from binary: " + response.value});
+      worker.port.emit(event, callbackid, {
+        errorCode: 1,
+        errorMessage: "No response from binary: " + response.value
+      });
   });
   if (challenges.length > 16)
     challenges = challenges.slice(0, 16);
 
-  var stdin = (event == "signResponse" ? "s" : "r") + toHex(domain.length) +
-    toHex(challenges.length) + challenges.map(v=>toHex(v.length)).join("") +
-    domain + challenges.join("");
+  let strChallenges = challenges.map(JSON.stringify);
+  let stdin = (event == "signResponse" ? "s" : "r") + toHex(origin.length) +
+    toHex(challenges.length) + strChallenges.map(v => toHex(v.length)).join("") +
+    origin + strChallenges.join("");
 
   console.info("stdin", stdin);
 
-  activeRequest = {worker: worker, cmd: cmd, timer: timer};
+  activeRequest = {
+    worker: worker,
+    cmd: cmd,
+    timer: timer
+  };
 
   emit(cmd.stdin, "data", stdin);
   emit(cmd.stdin, "end");
@@ -102,13 +130,11 @@ pageMod.PageMod({ // eslint-disable-line new-cap
   onAttach: function(worker) {
     worker.port.on("register", function(requests, callbackid, domain, timeout) {
       var req = Array.isArray(requests) ? requests : [requests];
-      var reqS = req.map(v => JSON.stringify(v));
-      execBin("registerResponse", domain, reqS, callbackid, worker, timeout);
+      execBin("registerResponse", domain, req, callbackid, worker, timeout);
     });
     worker.port.on("sign", function(signRequests, callbackid, domain, timeout) {
       var req = Array.isArray(signRequests) ? signRequests : [signRequests];
-      var reqS = req.map(v => JSON.stringify(v));
-      execBin("signResponse", domain, reqS, callbackid, worker, timeout);
+      execBin("signResponse", domain, req, callbackid, worker, timeout);
     });
     worker.on("detach", function() {
       if (activeRequest && activeRequest.worker == worker) {
