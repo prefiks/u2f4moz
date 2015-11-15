@@ -119,7 +119,7 @@ function hasValidAppId(facetId, challenge) {
         }
         ids = ids.filter(id => getTLDPlusOne(id) == tld);
         if (ids.indexOf(url2str(ou)) < 0) {
-          reject("No entry fot facet in trusted facet list");
+          reject("No entry for facet in trusted facet list");
           return;
         }
         resolve(challenge);
