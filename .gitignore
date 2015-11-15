@@ -1,0 +1,6 @@
+ext/bin
+c_src/build*
+*.xpi
+update.rdf
+u2f-src*.zip
+.idea
