@@ -41,7 +41,7 @@ typedef struct {
 static OP eof_op = {'e'};
 
 static int
-read_n_bytes(char *buf, long len) {
+read_n_bytes(char *buf, size_t len) {
   while (len > 0) {
     long r = read(0, buf, len);
     if (!r)
@@ -51,6 +51,8 @@ read_n_bytes(char *buf, long len) {
   }
   return 1;
 }
+
+#define READ_LEN(buf, val) do {long read_len = strtol(buf, NULL, 16); if (read_len <= 0) return &eof_op; val = read_len;} while(0)
 
 static OP *
 read_action(int timeout) {
@@ -74,17 +76,17 @@ read_action(int timeout) {
 
   if (op == 'r' || op == 's') {
     char input_buf[9];
-    long challenges_lengths[16];
-    long challenges_num, challenges_buf_len = 0, domain_len;
+    size_t challenges_lengths[16];
+    size_t challenges_num, challenges_buf_len = 0, domain_len;
     int i;
 
     if (!read_n_bytes(input_buf, 8))
       return &eof_op;
 
     input_buf[8] = '\0';
-    challenges_num = strtol(input_buf + 4, NULL, 16);
+    READ_LEN(input_buf + 4, challenges_num);
     input_buf[4] = '\0';
-    domain_len = strtol(input_buf, NULL, 16);
+    READ_LEN(input_buf, domain_len);
 
     if (challenges_num >= sizeof(challenges_lengths)/sizeof(challenges_lengths[0]))
       return &eof_op;
@@ -92,7 +94,7 @@ read_action(int timeout) {
     for (i = 0; i < challenges_num; i++) {
       if (!read_n_bytes(input_buf, 4))
         return &eof_op;
-      challenges_lengths[i] = strtol(input_buf, NULL, 16);
+      READ_LEN(input_buf, challenges_lengths[i]);
       challenges_buf_len += challenges_lengths[i];
     }
 
