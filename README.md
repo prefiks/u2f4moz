@@ -16,8 +16,8 @@ Install from https://addons.mozilla.org/firefox/addon/u2f-support-add-on/
 
 On OS X and Linux the u2f binary may lose its executable bit upon packaging XPI this way.
 
-It's possible to make XPI file manually by executing `cd ext; zip -9r ../u2f.xpi *`, this way
-permissions in final file will be correct.
+It's possible to make XPI file manually by executing `cd ext; zip -9r ../u2f.xpi *` or
+include bash script `scripts/make-xpi.sh`, this way permissions in final file will be correct.
 
 ## Enabling U2f on Yubico Neo and Neo-n ##
 
