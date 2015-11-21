@@ -141,7 +141,6 @@ u2fh_authenticate (u2fh_devs * devs,
   int iterations = 0;
 
   memset (skip_devices, 0, sizeof (skip_devices));
-  memset (buf, 0, 2);
 
   rc = get_fixed_json_data (challenge, "challenge", chalb64, &challen);
   if (rc != U2FH_OK)
@@ -206,7 +205,6 @@ u2fh_authenticate (u2fh_devs * devs,
 	    {
 	      skipped++;
 	      skip_devices[i] = 2;
-	      continue;
 	    }
 	  memcpy (buf, tmp_buf, len);
 	}
