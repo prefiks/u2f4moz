@@ -12,9 +12,8 @@ function sendToChrome(msg, callback, timeout) {
 
   timeout = 1000 * (timeout || DEFAULT_TIMEOUT_SECONDS);
   var timer = setTimeout(function() {
-    callback({
-      errorCode: 5
-    });
+    var value = cloneInto({errorCode: 5}, document.defaultView);
+    callback(value);
     timer = null;
   }, timeout);
 
