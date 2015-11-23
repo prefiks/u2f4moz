@@ -71,13 +71,13 @@ function _execBin(event, origin, challenges, callbackid, worker, timeout) {
     var r = response.value.match(/^(.)(....)/);
     var len = r && parseInt(r[2], 16);
     if (r && response.value.length >= len + 5) {
-      worker.port.emit(event, callbackid, JSON.parse(response.value.substr(5, len)));
+      worker.port.emit("U2FRequestResponse", callbackid, JSON.parse(response.value.substr(5, len)));
       response.value = response.value.substr(5 + len);
       response.responded = true;
     }
   });
   cmd.on("error", function() {
-    worker.port.emit(event, callbackid, {
+    worker.port.emit("U2FRequestResponse", callbackid, {
       errorCode: 1,
       errorMessage: "Couldn't spawn binary"
     });
@@ -92,12 +92,12 @@ function _execBin(event, origin, challenges, callbackid, worker, timeout) {
       return;
 
     if (code == null || code < 0)
-      worker.port.emit(event, callbackid, {
+      worker.port.emit("U2FRequestResponse", callbackid, {
         errorCode: 1,
         errorMessage: "Couldn't spawn binary"
       });
     else if (!response.responded)
-      worker.port.emit(event, callbackid, {
+      worker.port.emit("U2FRequestResponse", callbackid, {
         errorCode: 1,
         errorMessage: "No response from binary: " + response.value
       });
@@ -106,7 +106,7 @@ function _execBin(event, origin, challenges, callbackid, worker, timeout) {
     challenges = challenges.slice(0, 16);
 
   let strChallenges = challenges.map(JSON.stringify);
-  let stdin = (event == "signResponse" ? "s" : "r") + toHex(origin.length) +
+  let stdin = (event == "sign" ? "s" : "r") + toHex(origin.length) +
     toHex(challenges.length) + strChallenges.map(v => toHex(v.length)).join("") +
     origin + strChallenges.join("");
 
@@ -128,13 +128,16 @@ pageMod.PageMod({ // eslint-disable-line new-cap
   attachTo: ["top", "frame"],
   contentScriptFile: "./content-script.js",
   onAttach: function(worker) {
-    worker.port.on("register", function(requests, callbackid, domain, timeout) {
-      var req = Array.isArray(requests) ? requests : [requests];
-      execBin("registerResponse", domain, req, callbackid, worker, timeout);
-    });
-    worker.port.on("sign", function(signRequests, callbackid, domain, timeout) {
-      var req = Array.isArray(signRequests) ? signRequests : [signRequests];
-      execBin("signResponse", domain, req, callbackid, worker, timeout);
+    worker.port.on("U2FRequest", function(msg, callbackid, domain, timeout) {
+      var req;
+
+      if (msg.type == "register")
+        req = msg.requests;
+      else
+        req = msg.signRequests;
+
+      req = Array.isArray(req) ? req : [req];
+      execBin(msg.type, domain, req, callbackid, worker, timeout);
     });
     worker.on("detach", function() {
       if (activeRequest && activeRequest.worker == worker) {

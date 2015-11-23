@@ -6,7 +6,7 @@ const DEFAULT_TIMEOUT_SECONDS = 30;
 
 var nextCallbackID = 0;
 
-function sendToChrome(type, requests, callback, timeout) {
+function sendToChrome(msg, callback, timeout) {
   var origin = document.location.origin;
   var callbackID = nextCallbackID++;
 
@@ -18,24 +18,20 @@ function sendToChrome(type, requests, callback, timeout) {
     timer = null;
   }, timeout);
 
-  self.port.on(type + "Response", function onResponse(id, response) {
+  self.port.once("U2FRequestResponse", function onResponse(id, response) {
     if (id != callbackID || !timer) {
       return;
     }
-    self.port.removeListener(type + "Response", onResponse);
 
     if (response.errorMessage)
       console.info("U2F error response:", response.errorMessage);
 
     delete response.errorMessage;
 
-    var value = cloneInto({
-      id: id,
-      response: response
-    }, document.defaultView);
+    var value = cloneInto(response, document.defaultView);
 
     try {
-      callback(value.response);
+      callback(value);
       clearTimeout(timer);
       timer = null;
     } catch (ex) {
@@ -43,7 +39,7 @@ function sendToChrome(type, requests, callback, timeout) {
     }
   });
 
-  self.port.emit(type, requests, callbackID, origin, timeout);
+  self.port.emit("U2FRequest", msg, callbackID, origin, timeout);
 }
 
 function cloneFunctions(obj, clone) {
@@ -67,11 +63,18 @@ function cloneFullyInto(obj, scope) {
 
 var u2f = {
   register: function(requests, signRequests, callback, timeout) {
-    sendToChrome("register", requests, callback, timeout);
+    sendToChrome({
+      type: "register",
+      requests: requests,
+      signRequests: signRequests
+    }, callback, timeout);
   },
 
   sign: function(signRequests, callback, timeout) {
-    sendToChrome("sign", signRequests, callback, timeout);
+    sendToChrome({
+      type: "sign",
+      signRequests: signRequests
+    }, callback, timeout);
   }
 };
 
