@@ -212,6 +212,18 @@ main(int argc, char *argv[]) {
       goto done;
     }
 
+    if (rc == U2FH_OK && dev_insert_send) {
+      dev_insert_send = 0;
+      printf("j");
+      fflush(stdout);
+    }
+
+    if (rc != U2FH_OK && !dev_insert_send) {
+      printf("i");
+      fflush(stdout);
+      dev_insert_send = 1;
+    }
+
     device_disappeared_rc = U2FH_OK;
 
     if (!action) {
@@ -220,12 +232,6 @@ main(int argc, char *argv[]) {
         reset_quit_timer();
     } else
       sleep(1);
-
-    if (rc != U2FH_OK && !dev_insert_send) {
-      printf("i");
-      fflush(stdout);
-      dev_insert_send = 1;
-    }
 
     if (action && (rc == U2FH_OK || action->op == 'e')) {
       if (action->op == 'e')

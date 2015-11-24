@@ -68,6 +68,11 @@ function _execBin(event, origin, challenges, callbackid, worker, timeout) {
       worker.port.emit("insert");
       response.value = response.value.substr(1);
     }
+    if (response.value[0] == "j") {
+      console.info("device inserted");
+      worker.port.emit("inserted");
+      response.value = response.value.substr(1);
+    }
     var r = response.value.match(/^(.)(....)/);
     var len = r && parseInt(r[2], 16);
     if (r && response.value.length >= len + 5) {
