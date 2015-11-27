@@ -9,12 +9,37 @@ const system = require("sdk/system");
 const { URL, toFilename } = require("sdk/url");
 const { setTimeout, clearTimeout } = require("sdk/timers");
 const { allValidAppIds } = require("./appIdValidator");
+const { viewFor } = require("sdk/view/core");
+const _ = require("sdk/l10n").get;
 
 var activeRequest;
+
+function cleanNotification() {
+  if (!activeRequest)
+    return;
+  if (activeRequest.notification)
+    viewFor(activeRequest.worker.tab).ownerGlobal.
+      PopupNotifications.remove(activeRequest.notification);
+    activeRequest.notification = null;
+}
+
+function showNotification(msg) {
+  let tab = viewFor(activeRequest.worker.tab);
+  if (activeRequest.notification)
+    cleanNotification();
+
+  activeRequest.notification = tab.ownerGlobal.
+    PopupNotifications.show(tab.linkedBrowser, "u2f-device-info", msg, null, null,
+      null, {
+        popupIconURL: self.data.url("device.png"),
+        removeOnDismissal: true
+      });
+}
 
 function killExe() {
   if (!activeRequest)
     return;
+  cleanNotification();
   clearTimeout(activeRequest.timer);
   try {
     activeRequest.cmd.kill();
@@ -65,12 +90,12 @@ function _execBin(event, origin, challenges, callbackid, worker, timeout) {
     response.value += data;
     if (response.value[0] == "i") {
       console.info("insert device");
-      worker.port.emit("insert");
+      showNotification(_("Please plug-in your U2F device"));
       response.value = response.value.substr(1);
     }
     if (response.value[0] == "j") {
       console.info("device inserted");
-      worker.port.emit("inserted");
+      showNotification(_("Please press button on your U2F device"));
       response.value = response.value.substr(1);
     }
     var r = response.value.match(/^(.)(....)/);
@@ -90,6 +115,7 @@ function _execBin(event, origin, challenges, callbackid, worker, timeout) {
   });
   cmd.on("exit", function(code, signal) {
     console.info("exit", code, signal);
+    cleanNotification();
     clearTimeout(timer);
     activeRequest = null;
 
