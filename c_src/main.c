@@ -88,7 +88,7 @@ read_action(int timeout) {
     input_buf[4] = '\0';
     READ_LEN(input_buf, domain_len);
 
-    if (challenges_num >= sizeof(challenges_lengths)/sizeof(challenges_lengths[0]))
+    if (challenges_num >= sizeof(challenges_lengths) / sizeof(challenges_lengths[0]))
       return &eof_op;
 
     for (i = 0; i < challenges_num; i++) {
@@ -180,7 +180,7 @@ main(int argc, char *argv[]) {
   u2fh_devs *devs = NULL;
   u2fh_rc rc;
   OP *action = NULL;
-  int dev_insert_send = 0;
+  char device_state = 'u';
   u2fh_rc device_disappeared_rc = U2FH_OK;
   char *device_disappeared_msg = NULL;
 
@@ -199,6 +199,7 @@ main(int argc, char *argv[]) {
   }
 
   while (1) {
+    int need_sleep = 1;
     rc = u2fh_devs_discover(devs, NULL);
     if (device_disappeared_rc != U2FH_OK && rc != U2FH_NO_U2F_DEVICE) {
       report_error(device_disappeared_rc, device_disappeared_msg);
@@ -212,16 +213,17 @@ main(int argc, char *argv[]) {
       goto done;
     }
 
-    if (rc == U2FH_OK && dev_insert_send) {
-      dev_insert_send = 0;
+    if (rc == U2FH_OK && device_state == 'm') {
       printf("j");
       fflush(stdout);
+      device_state = 'p';
+      need_sleep = 0;
     }
 
-    if (rc != U2FH_OK && !dev_insert_send) {
+    if (rc == U2FH_NO_U2F_DEVICE && device_state != 'm') {
       printf("i");
       fflush(stdout);
-      dev_insert_send = 1;
+      device_state = 'm';
     }
 
     device_disappeared_rc = U2FH_OK;
@@ -230,45 +232,45 @@ main(int argc, char *argv[]) {
       action = read_action(1000);
       if (action)
         reset_quit_timer();
-    } else
+    } else if (need_sleep)
       sleep(1);
 
     if (action && (rc == U2FH_OK || action->op == 'e')) {
       if (action->op == 'e')
         goto done;
-      else if (action->op == 'r') {
-        int i = 0;
+      else if (action->op == 'r' || action->op == 's') {
+        int requests_count = 0;
         do {
-          rc = u2fh_register(devs, action->challenges[i], action->domain,
-                             &response,
-                             U2FH_REQUEST_USER_PRESENCE);
-          i++;
-        } while (action->challenges[i] && rc == U2FH_AUTHENTICATOR_ERROR);
-
-        if (rc != U2FH_OK) {
-          device_disappeared_rc = rc;
-          device_disappeared_msg = "register";
-          continue;
-        } else {
-          printf("r%04lx%s", strlen(response), response);
-          fflush(stdout);
-        }
-
-        free(response);
-        free(action);
-        action = NULL;
-      } else if (action->op == 's') {
-        int i = 0;
-        do {
-          rc = u2fh_authenticate(devs, action->challenges[i], action->domain,
+          int i = 0;
+          do {
+            if (action->op == 'r') {
+              rc = u2fh_register(devs, action->challenges[i], action->domain,
                                  &response,
-                                 U2FH_REQUEST_USER_PRESENCE);
-          i++;
-        } while (action->challenges[i] && rc == U2FH_AUTHENTICATOR_ERROR);
+                                 U2FH_REQUEST_USER_PRESENCE | U2FH_REQUEST_NON_BLOCKING);
+            } else {
+              rc = u2fh_authenticate(devs, action->challenges[i], action->domain,
+                                     &response,
+                                     U2FH_REQUEST_USER_PRESENCE | U2FH_REQUEST_NON_BLOCKING);
+            }
+            i++;
+          } while (action->challenges[i] && rc == U2FH_AUTHENTICATOR_ERROR);
 
-        if (rc != U2FH_OK) {
+          if (rc == U2FH_NOT_FINISHED_ERROR) {
+            if (device_state != 'b') {
+              printf("b");
+              fflush(stdout);
+              device_state = 'b';
+            }
+            sleep(1);
+          } else
+            break;
+        } while (requests_count++ < 15);
+
+        if (requests_count >= 15) {
+          report_error(U2FH_TIMEOUT_ERROR, NULL);
+        } else if (rc != U2FH_OK) {
           device_disappeared_rc = rc;
-          device_disappeared_msg = "authenticate";
+          device_disappeared_msg = action->op == 'r' ? "register" : "authenticate";
           continue;
         } else {
           printf("r%04lx%s", strlen(response), response);

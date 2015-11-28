@@ -210,7 +210,11 @@ u2fh_authenticate (u2fh_devs * devs,
 	}
       if (len == 2 && memcmp (buf, NOTSATISFIED, 2) == 0)
 	{
-	  Sleep (1000);
+          if (flags & U2FH_REQUEST_NON_BLOCKING)
+          {
+            return U2FH_NOT_FINISHED_ERROR;
+          }
+        Sleep (1000);
 	}
     }
   while ((flags & U2FH_REQUEST_USER_PRESENCE)

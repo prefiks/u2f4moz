@@ -164,6 +164,10 @@ u2fh_register (u2fh_devs * devs,
 	{
 	  break;
 	}
+      if (flags & U2FH_REQUEST_NON_BLOCKING)
+        {
+	  return U2FH_NOT_FINISHED_ERROR;
+        }
       Sleep (1000);
     }
   while ((flags & U2FH_REQUEST_USER_PRESENCE)

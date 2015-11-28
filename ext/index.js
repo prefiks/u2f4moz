@@ -10,7 +10,7 @@ const { URL, toFilename } = require("sdk/url");
 const { setTimeout, clearTimeout } = require("sdk/timers");
 const { allValidAppIds } = require("./appIdValidator");
 const { viewFor } = require("sdk/view/core");
-const _ = require("sdk/l10n").get;
+const {get: _} = require("sdk/l10n");
 
 var activeRequest;
 
@@ -94,7 +94,12 @@ function _execBin(event, origin, challenges, callbackid, worker, timeout) {
       response.value = response.value.substr(1);
     }
     if (response.value[0] == "j") {
+      cleanNotification();
       console.info("device inserted");
+      response.value = response.value.substr(1);
+    }
+    if (response.value[0] == "b") {
+      console.info("device waits for button press");
       showNotification(_("Please press button on your U2F device"));
       response.value = response.value.substr(1);
     }
