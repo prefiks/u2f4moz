@@ -31,7 +31,7 @@ function showNotification(msg) {
   activeRequest.notification = tab.ownerGlobal.
     PopupNotifications.show(tab.linkedBrowser, "u2f-device-info", msg, null, null,
       null, {
-        popupIconURL: self.data.url("device.png"),
+        popupIconURL: self.data.url("../icon.png"),
         removeOnDismissal: true
       });
 }
