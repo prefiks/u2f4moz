@@ -53,9 +53,19 @@ function toHex(num) {
   return (0x10000 + num).toString(16).substr(1);
 }
 
-function execBin(event, origin, challenges, callbackid, worker, timeout) {
-  let facetId = URL(origin);
+function challengesToStr(signRequest, origin, challenges) {
+  if (challenges.length > 16)
+    challenges = challenges.slice(0, 16);
 
+  let strChallenges = challenges.map(JSON.stringify);
+  return (signRequest ? "s" : "r") + toHex(origin.length) +
+    toHex(challenges.length) + strChallenges.map(v => toHex(v.length)).join("") +
+    origin + strChallenges.join("");
+
+}
+
+function execBin(event, origin, challenges, checkSignChallenges, callbackid, worker, timeout) {
+  let facetId = URL(origin);
   allValidAppIds(facetId, challenges).then(ch => {
     if (ch.length == 0) {
       worker.port.emit(event, callbackid, {
@@ -64,12 +74,24 @@ function execBin(event, origin, challenges, callbackid, worker, timeout) {
       });
       return;
     }
-    _execBin(event, origin, ch, callbackid, worker, timeout);
+    if (checkSignChallenges) {
+      allValidAppIds(facetId, checkSignChallenges).then(sch => {
+        if (sch.length == 0) {
+          worker.port.emit(event, callbackid, {
+            errorCode: 2,
+            errorMessage: "Invalid input"
+          });
+          return;
+      }
+      _execBin(event, origin, ch, sch, callbackid, worker, timeout);
+    });
+  } else
+    _execBin(event, origin, ch, null, callbackid, worker, timeout);
   });
 }
 
-function _execBin(event, origin, challenges, callbackid, worker, timeout) {
-  console.info("EB1", event, origin, challenges);
+function _execBin(event, origin, challenges, checkSignChallenges, callbackid, worker, timeout) {
+  console.info("EB1", event, origin, challenges, checkSignChallenges);
   var [arch, ext] = system.platform == "winnt" ? ["x86", ".exe"] : [system.architecture, ""];
   var exe = system.platform + "_" + arch + "-" + system.compiler + "/u2f" + ext;
   var path = toFilename(self.data.url("../bin/" + exe));
@@ -106,9 +128,30 @@ function _execBin(event, origin, challenges, callbackid, worker, timeout) {
     var r = response.value.match(/^(.)(....)/);
     var len = r && parseInt(r[2], 16);
     if (r && response.value.length >= len + 5) {
-      worker.port.emit("U2FRequestResponse", callbackid, JSON.parse(response.value.substr(5, len)));
-      response.value = response.value.substr(5 + len);
-      response.responded = true;
+      if (checkSignChallenges) {
+        let json = JSON.parse(response.value.substr(5, len));
+        if (json.errorCode == 4) {
+          checkSignChallenges = null;
+          let stdin = challengesToStr(false, origin, challenges);
+          emit(cmd.stdin, "data", stdin);
+        } else if (json.errorCode) {
+          worker.port.emit("U2FRequestResponse", callbackid, {
+            errorCode: 1,
+            errorMessage: "Unknown error"
+          });
+        } else {
+          worker.port.emit("U2FRequestResponse", callbackid, {
+            errorCode: 4,
+            errorMessage: "Device already registered"
+          });
+        }
+        response.value = response.value.substr(5 + len);
+        emit(cmd.stdin, "end");
+      } else {
+        worker.port.emit("U2FRequestResponse", callbackid, JSON.parse(response.value.substr(5, len)));
+        response.value = response.value.substr(5 + len);
+        response.responded = true;
+      }
     }
   });
   cmd.on("error", function() {
@@ -141,11 +184,8 @@ function _execBin(event, origin, challenges, callbackid, worker, timeout) {
   if (challenges.length > 16)
     challenges = challenges.slice(0, 16);
 
-  let strChallenges = challenges.map(JSON.stringify);
-  let stdin = (event == "sign" ? "s" : "r") + toHex(origin.length) +
-    toHex(challenges.length) + strChallenges.map(v => toHex(v.length)).join("") +
-    origin + strChallenges.join("");
-
+  let stdin = challengesToStr(checkSignChallenges || event == "sign", origin,
+   checkSignChallenges ? checkSignChallenges : challenges);
   console.info("stdin", stdin);
 
   activeRequest = {
@@ -155,7 +195,8 @@ function _execBin(event, origin, challenges, callbackid, worker, timeout) {
   };
 
   emit(cmd.stdin, "data", stdin);
-  emit(cmd.stdin, "end");
+  if (!checkSignChallenges)
+    emit(cmd.stdin, "end");
 }
 
 pageMod.PageMod({ // eslint-disable-line new-cap
@@ -165,15 +206,15 @@ pageMod.PageMod({ // eslint-disable-line new-cap
   contentScriptFile: "./content-script.js",
   onAttach: function(worker) {
     worker.port.on("U2FRequest", function(msg, callbackid, domain, timeout) {
-      var req;
+      let req, signCheckReq;
 
       if (msg.type == "register")
-        req = msg.requests;
+        [req, signCheckReq] = [msg.requests, msg.signRequests];
       else
-        req = msg.signRequests;
+        [req, signCheckReq] = [msg.signRequests, null];
 
       req = Array.isArray(req) ? req : [req];
-      execBin(msg.type, domain, req, callbackid, worker, timeout);
+      execBin(msg.type, domain, req, signCheckReq, callbackid, worker, timeout);
     });
     worker.on("detach", function() {
       if (activeRequest && activeRequest.worker == worker) {
