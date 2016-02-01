@@ -10,7 +10,7 @@ function allValid(promises) {
   var goodValues = [];
   var valuesLeft = {count: promises.length};
   var finished = function() {
-    if (--valuesLeft)
+    if (--valuesLeft.count)
       return;
     resolve(goodValues.sort((a,b) => a[0] - b[0]).map(v=>v[1]));
   };
