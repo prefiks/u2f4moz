@@ -6,6 +6,11 @@ INCLUDE (CheckFunctionExists)
 
 SET(COMPILE_FOR_32 0 CACHE PATH "Compile for 32 bit target")
 
+SET(CMAKE_CXX_VISIBILITY_PRESET hidden)
+SET(CMAKE_C_VISIBILITY_PRESET hidden)
+#CMAKE_POLICY(SET CMP0063 NEW)
+CMAKE_POLICY(VERSION 3.4)
+
 IF(APPLE)
   SET(hidapi_SRC hidapi/hid-mac.c)
   LIST(APPEND extra_LIBS "-framework IOKit" "-framework CoreFoundation")
