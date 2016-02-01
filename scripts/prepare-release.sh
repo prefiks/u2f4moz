@@ -1,6 +1,11 @@
 #!/bin/bash
 
-git stash
+NEED_POP=""
+
+if ! git diff-index --quiet HEAD; then
+    git stash
+    NEED_POP=1
+fi
 
 VERSION=`perl -ne 'print $1 if (/"version"\s*:\s*"(.*?)"/)' ext/package.json`
 MINVER=`perl -ne 'print $1 if (/minVersion>\s*(.*?)\s*</)' ext/install.rdf`
@@ -50,4 +55,6 @@ s/\@SHA\@/$SHA/g;
 s!\@XPIURL\@!$XPIURL!g;
 "> update.rdf
 
-git stash pop
+if [ -n "$NEED_POP" ]; then
+    git stash pop
+fi
