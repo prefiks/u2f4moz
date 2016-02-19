@@ -7,13 +7,21 @@ const { URL, getTLD } = require("sdk/url");
 
 function allValid(promises) {
   const { resolve, promise } = defer();
+
+  if (promises.length == 0) {
+    resolve([]);
+    return promise;
+  }
+
   var goodValues = [];
   var valuesLeft = {count: promises.length};
+
   var finished = function() {
     if (--valuesLeft.count)
       return;
     resolve(goodValues.sort((a,b) => a[0] - b[0]).map(v=>v[1]));
   };
+
   promises.forEach((p,i) => p.then(v => {
     goodValues.push([i, v]);
     finished();
@@ -21,6 +29,7 @@ function allValid(promises) {
     console.info("Failed resolve", v);
     finished();
   }));
+
   return promise;
 }
 

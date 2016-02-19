@@ -74,7 +74,7 @@ function execBin(event, origin, challenges, checkSignChallenges, callbackid, wor
       });
       return;
     }
-    if (checkSignChallenges) {
+    if (checkSignChallenges && checkSignChallenges.length > 0) {
       allValidAppIds(facetId, checkSignChallenges).then(sch => {
         if (sch.length == 0) {
           worker.port.emit(event, callbackid, {
