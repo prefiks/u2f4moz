@@ -64,7 +64,7 @@ var u2f = {
   register: function(requests, signRequests, callback, timeout) {
     if (typeof(timeout) == "function" && typeof(callback) != "function") {
       let appId, keys;
-      [appId, requests, keys, callback, timeout] = arguments;
+      [appId, requests, keys, callback, timeout] = Array.from(arguments);
       Array.forEach(requests, v => v.appId = appId);
       signRequests = Array.map(keys, v => ({
         version: v.version,
@@ -84,7 +84,7 @@ var u2f = {
   sign: function(signRequests, callback, timeout, extra) {
     if (typeof(extra) == "function" && typeof(callback) != "function") {
       let appId, challenge, keys;
-      [appId, challenge, keys, callback, timeout] = arguments;
+      [appId, challenge, keys, callback, timeout] = Array.from(arguments);
       signRequests = Array.map(keys, v => ({
         version: v.version,
         challenge: challenge,
