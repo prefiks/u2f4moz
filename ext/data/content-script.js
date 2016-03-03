@@ -62,6 +62,18 @@ function cloneFullyInto(obj, scope) {
 
 var u2f = {
   register: function(requests, signRequests, callback, timeout) {
+    if (typeof(timeout) == "function" && typeof(callback) != "function") {
+      let appId, keys;
+      [appId, requests, keys, callback, timeout] = arguments;
+      Array.forEach(requests, v => v.appId = appId);
+      signRequests = Array.map(keys, v => ({
+        version: v.version,
+        challenge: requests[0].challenge,
+        keyHandle: v.keyHandle,
+        appId: appId
+      }));
+    }
+
     sendToChrome({
       type: "register",
       requests: requests,
@@ -69,7 +81,18 @@ var u2f = {
     }, callback, timeout);
   },
 
-  sign: function(signRequests, callback, timeout) {
+  sign: function(signRequests, callback, timeout, extra) {
+    if (typeof(extra) == "function" && typeof(callback) != "function") {
+      let appId, challenge, keys;
+      [appId, challenge, keys, callback, timeout] = arguments;
+      signRequests = Array.map(keys, v => ({
+        version: v.version,
+        challenge: challenge,
+        keyHandle: v.keyHandle,
+        appId: appId
+      }));
+    }
+
     sendToChrome({
       type: "sign",
       signRequests: signRequests
