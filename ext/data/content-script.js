@@ -6,6 +6,8 @@ const DEFAULT_TIMEOUT_SECONDS = 30;
 
 var nextCallbackID = 0;
 
+var noopOnPage = exportFunction(() => {}, unsafeWindow);
+
 function sendToChrome(msg, callback, timeout) {
   var origin = document.location.origin;
   var callbackID = nextCallbackID++;
@@ -42,23 +44,22 @@ function sendToChrome(msg, callback, timeout) {
 }
 
 function cloneFunctions(obj, clone) {
-  for (var i in obj) {
-    if (!obj.hasOwnProperty(i))
-      continue;
-    else if (typeof obj[i] == "function")
-      exportFunction(obj[i], clone, {
-        defineAs: i
+  Object.getOwnPropertyNames(obj).forEach(i => {
+    if (typeof obj[i] == "function") {
+      // instead of freezing the clone use accessor property to allow further extension
+      let value = exportFunction(obj[i], clone);
+      let getter = exportFunction(() => {
+        return value;
+      }, clone);
+      Object.defineProperty(clone, i, {
+        get: getter,
+        set: noopOnPage // readonly: silently avoid strict mode TypeError on assignment
       });
-    else if (typeof obj[i] == "object")
+    } else if (typeof obj[i] == "object") {
       cloneFunctions(obj[i], clone[i]);
-  }
+    }
+  });
 }
-/* eslint-disable no-unused-vars */
-function cloneFullyInto(obj, scope) {
-  var clone = cloneInto(obj, scope);
-  cloneFunctions(obj, clone);
-}
-/* eslint-enable no-unused-vars */
 
 var u2f = {
   register: function(requests, signRequests, callback, timeout) {
@@ -104,5 +105,3 @@ var u2fOnPage = createObjectIn(unsafeWindow, {
   defineAs: "u2f"
 });
 cloneFunctions(u2f, u2fOnPage);
-
-Object.freeze(u2fOnPage);
