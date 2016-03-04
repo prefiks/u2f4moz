@@ -53,12 +53,6 @@ function cloneFunctions(obj, clone) {
       cloneFunctions(obj[i], clone[i]);
   }
 }
-/* eslint-disable no-unused-vars */
-function cloneFullyInto(obj, scope) {
-  var clone = cloneInto(obj, scope);
-  cloneFunctions(obj, clone);
-}
-/* eslint-enable no-unused-vars */
 
 var u2f = {
   register: function(requests, signRequests, callback, timeout) {
