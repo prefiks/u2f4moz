@@ -10,6 +10,9 @@
     "Baptiste Mille-Mathias",
     "Matt N"
   ],
+  "permissions": {
+    "private-browsing": true
+  },
   "engines": {
     "firefox": ">=38.0a1"
   },
