@@ -1,4 +1,4 @@
-/* global console, clearTimeout:true, self:true, setTimeout:true */
+/* global console, uneval, clearTimeout:true, self:true, setTimeout:true */
 "use strict";
 
 const self = require("sdk/self");
@@ -11,8 +11,22 @@ const { setTimeout, clearTimeout } = require("sdk/timers");
 const { allValidAppIds } = require("./appIdValidator");
 const { viewFor } = require("sdk/view/core");
 const {get: _} = require("sdk/l10n");
+const events = require("sdk/system/events");
+const tabs = require("sdk/tabs");
+
 
 var activeRequest;
+
+var logs = [];
+function log() {
+  var msg = Array.map(arguments, v => typeof(v) == "string" ? v : uneval(v)).join(" ");
+  logs.push(msg);
+
+  if (logs.length > 100)
+    logs.shift();
+
+  console.info.apply(console, arguments);
+}
 
 function cleanNotification() {
   if (!activeRequest)
@@ -44,7 +58,7 @@ function killExe() {
   try {
     activeRequest.cmd.kill();
   } catch (ex) {
-    console.info("killExe", ex);
+    log("killExe", ex);
   }
   activeRequest = null;
 }
@@ -91,13 +105,13 @@ function execBin(event, origin, challenges, checkSignChallenges, callbackid, wor
 }
 
 function _execBin(event, origin, challenges, checkSignChallenges, callbackid, worker, timeout) {
-  console.info("EB1", event, origin, challenges, checkSignChallenges);
+  log("EB1", event, origin, challenges, checkSignChallenges);
   var [arch, ext] = system.platform == "winnt" ? ["x86", ".exe"] : [system.architecture, ""];
   var exe = system.platform + "_" + arch + "-" + system.compiler + "/u2f" + ext;
   var path = toFilename(self.data.url("../bin/" + exe));
-  console.info("EB2", path);
+  log("EB2", path);
   var cmd = childProcess.spawn(path, [], {});
-  console.info("EB3", cmd);
+  log("EB3", cmd);
   var response = {
     value: "",
     responded: false
@@ -108,20 +122,20 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
   }, timeout);
 
   cmd.stdout.on("data", function(data) {
-    console.info("EBD", data);
+    log("EBD", data);
     response.value += data;
     if (response.value[0] == "i") {
-      console.info("insert device");
+      log("insert device");
       showNotification(_("Please plug-in your U2F device"));
       response.value = response.value.substr(1);
     }
     if (response.value[0] == "j") {
       cleanNotification();
-      console.info("device inserted");
+      log("device inserted");
       response.value = response.value.substr(1);
     }
     if (response.value[0] == "b") {
-      console.info("device waits for button press");
+      log("device waits for button press");
       showNotification(_("Please press button on your U2F device"));
       response.value = response.value.substr(1);
     }
@@ -162,7 +176,7 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
     killExe();
   });
   cmd.on("exit", function(code, signal) {
-    console.info("exit", code, signal);
+    log("exit", code, signal);
     cleanNotification();
     clearTimeout(timer);
     activeRequest = null;
@@ -186,7 +200,7 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
 
   let stdin = challengesToStr(checkSignChallenges || event == "sign", origin,
    checkSignChallenges ? checkSignChallenges : challenges);
-  console.info("stdin", stdin);
+  log("stdin", stdin);
 
   activeRequest = {
     worker: worker,
@@ -223,3 +237,28 @@ pageMod.PageMod({ // eslint-disable-line new-cap
     });
   }
 });
+
+function showLogs() {
+  log("showLogsCalled");
+  tabs.open({
+    url: self.data.url("logs.html"),
+    onReady: function(tab) {
+      var worker = tab.attach({
+        contentScriptFile: self.data.url("./logs.js")
+      });
+      worker.port.emit("logs", logs);
+    }
+  });
+}
+
+function optionsDisplayed(event) {
+  if (event.type != "addon-options-displayed" ||
+      event.data != "u2f4moz@prefiks.org")
+    return;
+  var doc = event.subject;
+  var el = doc.getElementById("showLogsButton");
+  el.label = "Show Logs";
+  el.addEventListener("command", showLogs);
+}
+
+events.on("addon-options-displayed", optionsDisplayed);
