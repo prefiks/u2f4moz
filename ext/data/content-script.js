@@ -1,5 +1,5 @@
 /* eslint-env browser */
-/* globals cloneInto, createObjectIn, exportFunction, unsafeWindow */
+/* globals cloneInto, exportFunction, unsafeWindow */
 "use strict";
 
 const DEFAULT_TIMEOUT_SECONDS = 30;
@@ -101,7 +101,7 @@ var u2f = {
   }
 };
 
-var u2fOnPage = createObjectIn(unsafeWindow, {
+exportFunction(function(){}, unsafeWindow, {
   defineAs: "u2f"
 });
-cloneFunctions(u2f, u2fOnPage);
+cloneFunctions(u2f, unsafeWindow.u2f);
