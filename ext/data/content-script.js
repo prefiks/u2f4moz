@@ -5,40 +5,51 @@
 const DEFAULT_TIMEOUT_SECONDS = 30;
 
 var nextCallbackID = 0;
+var activeRequests = 0;
+var callbacks = [];
 
 var noopOnPage = exportFunction(() => {}, unsafeWindow);
+
+function deliverResponse(id, payload) {
+  if (!callbacks[id])
+    return;
+
+  var value = cloneInto(payload, document.defaultView);
+
+  try {
+    clearTimeout(callbacks[id].timer);
+    callbacks[id].callback(value);
+  } catch (ex) {
+    console.info(ex + "");
+  }
+
+  if (--activeRequests == 0)
+    self.port.removeListener("U2FRequestResponse", processChromeResponse);
+}
+
+function processChromeResponse(id, response) {
+  if (response.errorMessage)
+    console.info("U2F error response:", response.errorMessage);
+
+  delete response.errorMessage;
+
+  deliverResponse(id, response);
+}
+
+function handleTimeout(id) {
+  deliverResponse(id, {errorCode: 5});
+}
 
 function sendToChrome(msg, callback, timeout) {
   var origin = document.location.origin;
   var callbackID = nextCallbackID++;
 
   timeout = 1000 * (timeout || DEFAULT_TIMEOUT_SECONDS);
-  var timer = setTimeout(function() {
-    var value = cloneInto({errorCode: 5}, document.defaultView);
-    callback(value);
-    timer = null;
-  }, timeout);
+  var timer = setTimeout(handleTimeout, timeout, callbackID);
 
-  self.port.once("U2FRequestResponse", function onResponse(id, response) {
-    if (id != callbackID || !timer) {
-      return;
-    }
-
-    if (response.errorMessage)
-      console.info("U2F error response:", response.errorMessage);
-
-    delete response.errorMessage;
-
-    var value = cloneInto(response, document.defaultView);
-
-    try {
-      callback(value);
-      clearTimeout(timer);
-      timer = null;
-    } catch (ex) {
-      console.info(ex + "");
-    }
-  });
+  callbacks[callbackID] = {callback: callback, timer: timer};
+  if (activeRequests++ == 0)
+    self.port.on("U2FRequestResponse", processChromeResponse);
 
   self.port.emit("U2FRequest", msg, callbackID, origin, timeout);
 }
