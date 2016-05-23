@@ -132,7 +132,9 @@ this is very invasive as it requires the detach
 and re-attach of the kernel driver. See comments inside hid_enumerate().
 libusb HIDAPI programs are encouraged to use the interface number
 instead to differentiate between interfaces on a composite HID device. */
-/*#define INVASIVE_GET_USAGE*/
+#ifdef __FreeBSD__
+#define INVASIVE_GET_USAGE
+#endif
 
 /* Linked List of input reports received from the device. */
 struct input_report {
