@@ -89,7 +89,7 @@ function getTLDPlusOne(url) {
   }
 
   let tld = getTLD(url);
-  return url.host.slice(0, -tld.length - 1).replace(/.*\.([^.])$/, "$1." + tld);
+  return url.host.slice(0, -tld.length - 1).replace(/.*\.([^.]+)$/, "$1") + "." + tld;
 }
 
 function hasValidAppId(facetId, challenge) {
