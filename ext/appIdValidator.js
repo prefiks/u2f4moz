@@ -120,12 +120,6 @@ function hasValidAppId(facetId, challenge) {
 
       fetchTrustedFacetsList(challenge.appId).then(ids => {
         let tld = getTLDPlusOne(u);
-        try {
-          ids = ids.map(v => url2str(v));
-        } catch (ex) {
-          reject("Invalid entry in trusted facet list");
-          return;
-        }
         ids = ids.filter(id => getTLDPlusOne(id) == tld);
         if (ids.indexOf(url2str(ou)) < 0) {
           reject("No entry for facet in trusted facet list");
