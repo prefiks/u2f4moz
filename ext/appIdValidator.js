@@ -40,7 +40,7 @@ function fetchTrustedFacetsList(url) {
     anonymous: true,
     onComplete: res => {
       if (res.status < 200 || res.status > 399)
-        reject("Can't fetch trusted facets list");
+        return reject("Can't fetch trusted facets list");
 
       let found = false;
       for (let n in res.headers) {
@@ -51,17 +51,17 @@ function fetchTrustedFacetsList(url) {
         }
       }
       if (!found)
-        reject("Invalid content-type when fetching trusted facets list");
+        return reject("Invalid content-type when fetching trusted facets list");
 
       if (!res.json || !res.json.trustedFacets || !Array.isArray(res.json.trustedFacets))
-        reject("Invalid content of trusted facets list");
+        return reject("Invalid content of trusted facets list");
 
       let facets = res.json.trustedFacets.filter(v => v.version &&
         v.version.major == 1 && v.version.minor == 0);
       if (facets.length != 1)
-        reject("No trusted facet with version 1.0");
+        return reject("No trusted facet with version 1.0");
 
-      resolve(facets.ids);
+      resolve(facets[0].ids);
     }
   });
   r.get();
