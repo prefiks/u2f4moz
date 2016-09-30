@@ -112,7 +112,11 @@ var u2f = {
   }
 };
 
-var u2fOnPage = createObjectIn(unsafeWindow, {
-  defineAs: "u2f"
-});
+
+var u2fOnPage = createObjectIn(unsafeWindow);
 cloneFunctions(u2f, u2fOnPage);
+
+Object.defineProperty(unsafeWindow, "u2f", {
+    get: exportFunction(() => u2fOnPage, unsafeWindow),
+    set: noopOnPage
+});
