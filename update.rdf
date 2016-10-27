@@ -6,14 +6,14 @@
       <RDF:Seq>
         <RDF:li>
           <RDF:Description>
-            <em:version>0.0.20</em:version>
+            <em:version>1.0</em:version>
             <em:targetApplication>
               <RDF:Description>
                 <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
                 <em:minVersion>38.0a1</em:minVersion>
-                <em:maxVersion>49.0</em:maxVersion>
-                <em:updateLink>https://github.com/prefiks/u2f4moz/releases/download/v0.0.20/u2f-0.0.20-github.xpi</em:updateLink>
-                <em:updateHash>sha256:c34a66a2be6eeeaef4d951bbbb63fc864d85fc412518c50c451c900060477e22</em:updateHash>
+                <em:maxVersion>50.0</em:maxVersion>
+                <em:updateLink>https://github.com/prefiks/u2f4moz/releases/download/v1.0/u2f-1.0-github.xpi</em:updateLink>
+                <em:updateHash>sha256:1666bad778b733489458bde818abf4acf90da6f9419fec2e2c7507a804b03b85</em:updateHash>
               </RDF:Description>
             </em:targetApplication>
           </RDF:Description>
