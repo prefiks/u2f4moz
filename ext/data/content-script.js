@@ -64,7 +64,8 @@ function cloneFunctions(obj, clone) {
       }, clone);
       Object.defineProperty(clone, i, {
         get: getter,
-        set: noopOnPage // readonly: silently avoid strict mode TypeError on assignment
+        set: noopOnPage, // readonly: silently avoid strict mode TypeError on assignment
+        enumerable: true
       });
     } else if (typeof obj[i] == "object") {
       cloneFunctions(obj[i], clone[i]);
@@ -118,5 +119,7 @@ cloneFunctions(u2f, u2fOnPage);
 
 Object.defineProperty(unsafeWindow, "u2f", {
     get: exportFunction(() => u2fOnPage, unsafeWindow),
-    set: noopOnPage
+    set: noopOnPage,
+    configurable: true,
+    enumerable: true
 });
