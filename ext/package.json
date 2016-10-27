@@ -11,7 +11,8 @@
     "Matt N"
   ],
   "permissions": {
-    "private-browsing": true
+    "private-browsing": true,
+    "multiprocess": true
   },
   "engines": {
     "firefox": ">=38.0a1"
