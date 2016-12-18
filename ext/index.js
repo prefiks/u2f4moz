@@ -126,7 +126,7 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
     response.value += data;
     if (response.value[0] == "i") {
       log("insert device");
-      showNotification(_("Please plug-in your U2F device"));
+      showNotification(_("Please plug in your U2F device"));
       response.value = response.value.substr(1);
     }
     if (response.value[0] == "j") {
