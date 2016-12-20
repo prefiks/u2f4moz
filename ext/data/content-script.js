@@ -113,13 +113,16 @@ var u2f = {
   }
 };
 
+var allowToOverride = document.location.origin.indexOf(".google.") >= 0;
 
-var u2fOnPage = createObjectIn(unsafeWindow);
+var u2fOnPage = createObjectIn(unsafeWindow, allowToOverride ? {defineAs: "u2f"} : {});
 cloneFunctions(u2f, u2fOnPage);
 
-Object.defineProperty(unsafeWindow, "u2f", {
-    get: exportFunction(() => u2fOnPage, unsafeWindow),
-    set: noopOnPage,
-    configurable: true,
-    enumerable: true
-});
+if (!allowToOverride) {
+  Object.defineProperty(unsafeWindow, "u2f", {
+      get: exportFunction(() => u2fOnPage, unsafeWindow),
+      set: noopOnPage,
+      configurable: true,
+      enumerable: true
+  });
+}
