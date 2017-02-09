@@ -56,6 +56,7 @@ function killExe() {
     return;
   cleanNotification();
   clearTimeout(activeRequest.timer);
+  activeRequest.killing = true;
   try {
     activeRequest.cmd.kill();
   } catch (ex) {
@@ -177,11 +178,12 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
     killExe();
   });
   cmd.on("exit", function(code, signal) {
-    log("exit code =", code, "signal =",signal, "killed =",cmd.killed, "activeRequest =", !!activeRequest);
+    log("exit code =", code, "signal =",signal, "killed =",cmd.killed, "activeRequest =", !!activeRequest,
+      "activeRequest.killing =", activeRequest && activeRequest.killing);
     cleanNotification();
     clearTimeout(timer);
 
-    if (cmd.killed || !activeRequest) {
+    if (cmd.killed || !activeRequest || activeRequest.killing) {
       activeRequest = null;
       return;
     }
