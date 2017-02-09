@@ -180,10 +180,12 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
     log("exit code =", code, "signal =",signal, "killed =",cmd.killed, "activeRequest =", !!activeRequest);
     cleanNotification();
     clearTimeout(timer);
-    activeRequest = null;
 
-    if (cmd.killed)
+    if (cmd.killed || !activeRequest) {
+      activeRequest = null;
       return;
+    }
+    activeRequest = null;
 
     if (code == null || code < 0)
       worker.port.emit("U2FRequestResponse", callbackid, {
