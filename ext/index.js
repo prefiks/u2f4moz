@@ -149,6 +149,7 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
         if (json.errorCode == 4) {
           checkSignChallenges = null;
           let stdin = challengesToStr(false, origin, challenges);
+          log("emit data", stdin);
           emit(cmd.stdin, "data", stdin);
         } else if (json.errorCode) {
           worker.port.emit("U2FRequestResponse", callbackid, {
@@ -162,6 +163,8 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
           });
         }
         response.value = response.value.substr(5 + len);
+
+        log("emit end");
         emit(cmd.stdin, "end");
       } else {
         worker.port.emit("U2FRequestResponse", callbackid, JSON.parse(response.value.substr(5, len)));
@@ -205,7 +208,6 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
 
   let stdin = challengesToStr(checkSignChallenges || event == "sign", origin,
    checkSignChallenges ? checkSignChallenges : challenges);
-  log("stdin", stdin);
 
   activeRequest = {
     worker: worker,
@@ -213,9 +215,12 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
     timer: timer
   };
 
+  log("emit data", stdin);
   emit(cmd.stdin, "data", stdin);
-  if (!checkSignChallenges)
+  if (!checkSignChallenges) {
+    log("emit end");
     emit(cmd.stdin, "end");
+  }
 }
 
 pageMod.PageMod({ // eslint-disable-line new-cap
