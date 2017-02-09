@@ -16,11 +16,12 @@ const tabs = require("sdk/tabs");
 
 
 var activeRequest;
+var timeStart = Date.now();
 
 var logs = [];
 function log() {
   var msg = Array.map(arguments, v => typeof(v) == "string" ? v : uneval(v)).join(" ");
-  logs.push(msg);
+  logs.push((Date.now()-timeStart)+" "+msg);
 
   if (logs.length > 100)
     logs.shift();
@@ -58,7 +59,7 @@ function killExe() {
   try {
     activeRequest.cmd.kill();
   } catch (ex) {
-    log("killExe", ex);
+    log("killExe exception", ex);
   }
   activeRequest = null;
 }
@@ -105,13 +106,13 @@ function execBin(event, origin, challenges, checkSignChallenges, callbackid, wor
 }
 
 function _execBin(event, origin, challenges, checkSignChallenges, callbackid, worker, timeout) {
-  log("EB1", event, origin, challenges, checkSignChallenges);
+  log("execBin event =", event, "origin =", origin, "challeges =",challenges, "checkSignChallenges =",checkSignChallenges);
   var [arch, ext] = system.platform == "winnt" ? ["x86", ".exe"] : [system.architecture, ""];
   var exe = system.platform + "_" + arch + "-" + system.compiler + "/u2f" + ext;
   var path = toFilename(self.data.url("../bin/" + exe));
-  log("EB2", path);
+  log("exec path", path);
   var cmd = childProcess.spawn(path, [], {});
-  log("EB3", cmd);
+  log("exec cmd", cmd);
   var response = {
     value: "",
     responded: false
@@ -122,7 +123,7 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
   }, timeout);
 
   cmd.stdout.on("data", function(data) {
-    log("EBD", data);
+    log("device data", data);
     response.value += data;
     if (response.value[0] == "i") {
       log("insert device");
@@ -176,7 +177,7 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
     killExe();
   });
   cmd.on("exit", function(code, signal) {
-    log("exit", code, signal);
+    log("exit code =", code, "signal =",signal, "killed =",cmd.killed, "activeRequest =", !!activeRequest);
     cleanNotification();
     clearTimeout(timer);
     activeRequest = null;
