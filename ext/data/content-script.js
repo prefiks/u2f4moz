@@ -19,6 +19,7 @@ function deliverResponse(id, payload) {
   try {
     clearTimeout(callbacks[id].timer);
     callbacks[id].callback(value);
+    delete callbacks[id];
   } catch (ex) {
     console.info(ex + "");
   }
