@@ -167,7 +167,10 @@ function _execBin(event, origin, challenges, checkSignChallenges, callbackid, wo
         log("emit end");
         emit(cmd.stdin, "end");
       } else {
-        worker.port.emit("U2FRequestResponse", callbackid, JSON.parse(response.value.substr(5, len)));
+        let json = JSON.parse(response.value.substr(5, len));
+        if (!json.version && json.registrationData)
+          json.version = "U2F_V2";
+        worker.port.emit("U2FRequestResponse", callbackid, json);
         response.value = response.value.substr(5 + len);
         response.responded = true;
       }
