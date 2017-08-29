@@ -27,6 +27,8 @@
 
 #include <signal.h>
 #include <poll.h>
+#include <json_object.h>
+#include <json.h>
 
 #endif
 
@@ -52,7 +54,79 @@ read_n_bytes(char *buf, size_t len) {
   return 1;
 }
 
+int webExMode = 0;
+
 #define READ_LEN(buf, val) do {long read_len = strtol(buf, NULL, 16); if (read_len <= 0) return &eof_op; val = read_len;} while(0)
+
+static OP *parse_json_input(char* input) {
+  json_object *json;
+  json_object *sign;
+  json_object *origin;
+  json_object *challenges;
+  json_object *challenge;
+  const char *str;
+  size_t str_len;
+
+  OP *buf = malloc(sizeof(OP) + strlen(input));
+  if (!buf)
+      return &eof_op;
+
+  char *free_space = (char*)(buf + 1);
+
+  json = json_tokener_parse(input);
+  if (!json)
+    goto error0;
+
+  if (!json_object_object_get_ex(json, "sign", &sign))
+    goto error1;
+
+  buf->op = json_object_get_boolean(sign) == TRUE ? 's': 'r';
+  json_object_put(sign);
+
+  if (!json_object_object_get_ex(json, "challenges", &challenges))
+    goto error1;
+
+  int ch_len = json_object_array_length(challenges);
+
+  buf->challenges = (char**)free_space;
+  free_space += ch_len * sizeof(buf->challenges[0]);
+
+  for (int i = 0; i < ch_len; i++) {
+    if (!(challenge = json_object_array_get_idx(challenges, i)))
+      goto error2;
+    buf->challenges[i] = free_space;
+    str = json_object_get_string(challenge);
+    str_len = strlen(str) + 1;
+    memcpy(free_space, str, str_len);
+    free_space += str_len;
+    json_object_put(challenge);
+  }
+  json_object_put(challenge);
+
+  if (!json_object_object_get_ex(json, "origin", &origin))
+    goto error1;
+
+  buf->domain = free_space;
+  str = json_object_get_string(origin);
+  str_len = strlen(str) + 1;
+  memcpy(free_space, str, str_len);
+  free_space += str_len;
+  json_object_put(origin);
+
+  json_object_put(json);
+
+  return buf;
+
+  error2:
+  json_object_put(challenges);
+
+  error1:
+  json_object_put(json);
+
+  error0:
+  free(buf);
+  return &eof_op;
+}
 
 static OP *
 read_action(int timeout) {
@@ -71,62 +145,100 @@ read_action(int timeout) {
 #endif
   char op;
 
-  if (read(0, &op, 1) == 0)
-    return &eof_op;
+  if (webExMode) {
+    int32_t len;
+    if (read_n_bytes((char*)&len, 4) == 0)
+      return &eof_op;
+    char *input = malloc(len+1);
+    if (!input)
+      return &eof_op;
+    read_n_bytes(input, len);
+    input[len+1] = '\0';
 
-  if (op == 'r' || op == 's') {
-    char input_buf[9];
-    size_t challenges_lengths[16];
-    size_t challenges_num, challenges_buf_len = 0, domain_len;
-    int i;
-
-    if (!read_n_bytes(input_buf, 8))
+    OP *buf = parse_json_input(input);
+    free(input);
+    return buf;
+  } else {
+    if (read(0, &op, 1) == 0)
       return &eof_op;
 
-    input_buf[8] = '\0';
-    READ_LEN(input_buf + 4, challenges_num);
-    input_buf[4] = '\0';
-    READ_LEN(input_buf, domain_len);
+    if (op == 'r' || op == 's') {
+      char input_buf[9];
+      size_t challenges_lengths[16];
+      size_t challenges_num, challenges_buf_len = 0, domain_len;
+      int i;
 
-    if (challenges_num >= sizeof(challenges_lengths) / sizeof(challenges_lengths[0]))
-      return &eof_op;
-
-    for (i = 0; i < challenges_num; i++) {
-      if (!read_n_bytes(input_buf, 4))
+      if (!read_n_bytes(input_buf, 8))
         return &eof_op;
-      READ_LEN(input_buf, challenges_lengths[i]);
-      challenges_buf_len += challenges_lengths[i];
-    }
 
-    OP *buf = malloc(domain_len + (sizeof(char *) * (challenges_num + 1)) +
-                     challenges_buf_len + challenges_num + 1 + sizeof(OP));
-    if (!buf)
-      return &eof_op;
+      input_buf[8] = '\0';
+      READ_LEN(input_buf + 4, challenges_num);
+      input_buf[4] = '\0';
+      READ_LEN(input_buf, domain_len);
 
-    buf->op = op;
-    buf->challenges = (char **) (buf + 1);
-    buf->domain = (char *) (buf->challenges + challenges_num + 1);
-    buf->domain[domain_len] = '\0';
+      if (challenges_num >= sizeof(challenges_lengths) / sizeof(challenges_lengths[0]))
+        return &eof_op;
 
-    if (!read_n_bytes(buf->domain, domain_len)) {
-      free(buf);
-      return &eof_op;
-    }
+      for (i = 0; i < challenges_num; i++) {
+        if (!read_n_bytes(input_buf, 4))
+          return &eof_op;
+        READ_LEN(input_buf, challenges_lengths[i]);
+        challenges_buf_len += challenges_lengths[i];
+      }
 
-    char *challenge = buf->domain + domain_len + 1;
-    for (i = 0; i < challenges_num; i++) {
-      buf->challenges[i] = challenge;
-      if (!read_n_bytes(buf->challenges[i], challenges_lengths[i])) {
+      OP *buf = malloc(domain_len + (sizeof(char *) * (challenges_num + 1)) +
+                       challenges_buf_len + challenges_num + 1 + sizeof(OP));
+      if (!buf)
+        return &eof_op;
+
+      buf->op = op;
+      buf->challenges = (char **) (buf + 1);
+      buf->domain = (char *) (buf->challenges + challenges_num + 1);
+      buf->domain[domain_len] = '\0';
+
+      if (!read_n_bytes(buf->domain, domain_len)) {
         free(buf);
         return &eof_op;
       }
-      challenge[challenges_lengths[i]] = '\0';
-      challenge += challenges_lengths[i];
+
+      char *challenge = buf->domain + domain_len + 1;
+      for (i = 0; i < challenges_num; i++) {
+        buf->challenges[i] = challenge;
+        if (!read_n_bytes(buf->challenges[i], challenges_lengths[i])) {
+          free(buf);
+          return &eof_op;
+        }
+        challenge[challenges_lengths[i]] = '\0';
+        challenge += challenges_lengths[i];
+      }
+      buf->challenges[challenges_num] = NULL;
+      return buf;
+    } else
+      return &eof_op;
+  }
+}
+
+static void
+message(char type, char *msg) {
+  if (webExMode) {
+    uint32_t size;
+    if (type == 'e' || type == 'r') {
+      size = (uint32_t)strlen(msg) + 11;
+      fwrite(&size, 4, 1, stdout);
+      printf("{\"type\":\"%c\",%s", type, msg+1);
+    } else {
+      size = 12;
+      fwrite(&size, 4, 1, stdout);
+      printf("{\"type\":\"%c\"}", type);
     }
-    buf->challenges[challenges_num] = NULL;
-    return buf;
-  } else
-    return &eof_op;
+  } else {
+    if (type == 'e' || type == 'r') {
+      printf("%c%04lx%s", type, strlen(msg), msg);
+    } else {
+      printf("%c", type);
+    }
+  }
+  fflush(stdout);
 }
 
 static void
@@ -142,9 +254,7 @@ report_error(u2fh_rc rc, char *label) {
   else
     sprintf(buf, "{\"errorCode\": %d}", code);
 
-  printf("e%04lx%s", strlen(buf), buf);
-
-  fflush(stdout);
+  message('e', buf);
 }
 
 #ifdef _WIN32
@@ -184,6 +294,9 @@ main(int argc, char *argv[]) {
   u2fh_rc device_disappeared_rc = U2FH_OK;
   char *device_disappeared_msg = NULL;
 
+  if (argv > 0)
+    webExMode = 1;
+
   reset_quit_timer();
 
   rc = u2fh_global_init(0);
@@ -214,15 +327,13 @@ main(int argc, char *argv[]) {
     }
 
     if (rc == U2FH_OK && device_state == 'm') {
-      printf("j");
-      fflush(stdout);
+      message('j', "");
       device_state = 'p';
       need_sleep = 0;
     }
 
     if (rc == U2FH_NO_U2F_DEVICE && device_state != 'm') {
-      printf("i");
-      fflush(stdout);
+      message('i', "");
       device_state = 'm';
     }
 
@@ -257,8 +368,7 @@ main(int argc, char *argv[]) {
 
           if (rc == U2FH_NOT_FINISHED_ERROR) {
             if (device_state != 'b') {
-              printf("b");
-              fflush(stdout);
+              message('b', "");
               device_state = 'b';
             }
             sleep(1);
@@ -273,8 +383,7 @@ main(int argc, char *argv[]) {
           device_disappeared_msg = action->op == 'r' ? "register" : "authenticate";
           continue;
         } else {
-          printf("r%04lx%s", strlen(response), response);
-          fflush(stdout);
+          message('r', response);
         }
 
         free(response);
