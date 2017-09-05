@@ -22,15 +22,13 @@
 #include <unistd.h>
 
 #ifdef _WIN32
-#include <windows.h>
+# include <windows.h>
 #else
-
-#include <signal.h>
-#include <poll.h>
-#include <json_object.h>
-#include <json.h>
-
+# include <signal.h>
+# include <poll.h>
 #endif
+
+#include "json.h"
 
 #define TIMEOUT 60
 
