@@ -21,8 +21,8 @@ included bash script `scripts/make-xpi.sh`, this way permissions in final file w
 
 ## Enabling U2f on Yubico Neo and Neo-n ##
 
-Those two devices don't have U2F enabled by default, it requires manual configuration changes
-described described in this [document](http://yubi.co/unlockU2F).
+Those two devices didn't have U2F enabled by default before November 2015. For the older models, it requires manual configuration changes
+described described in this [document](http://yubi.co/unlockU2F). If you've purchased one recently, you won't have to do anything.
 
 ## Permissions tweaks for Linux ##
 
